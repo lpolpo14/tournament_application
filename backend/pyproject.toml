@@ -3,13 +3,14 @@ name = "tournament-application-backend"
 version = "0.1.0"
 description = "University Assignment for the course Information Systems on the Web"
 authors = [
-    {name = "Your Name",email = "you@example.com"}
+    {name = "Mike Favvas"}
 ]
 license = {text = "Apache License Version 2.0"}
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "django (>=6.0.5,<7.0.0)"
+    "django (>=6.0.5,<7.0.0)",
+    "djangorestframework (>=3.17.1,<4.0.0)"
 ]
 
 
