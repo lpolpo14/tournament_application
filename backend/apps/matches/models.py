@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -17,3 +18,7 @@ class Match(models.Model):
 
     def __str__(self):
         return f'{self.team1} vs {self.team2}'
+
+    def clean(self):
+        if self.team1 == self.team2:
+            raise ValidationError('Teams must be different.')
