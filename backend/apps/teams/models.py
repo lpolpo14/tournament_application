@@ -10,6 +10,9 @@ class Player(models.Model):
     surname = models.CharField(max_length=100)
     main_shirt_number =  models.PositiveIntegerField()
 
+    def __str__(self):
+        return f'{self.name} {self.surname}'
+
 
 class Team(models.Model):
     """
@@ -23,6 +26,9 @@ class Team(models.Model):
     class Meta:
         ordering = ['team_name']
 
+    def __str__(self):
+        return f'{self.team_name}'
+
 class TeamMember(models.Model):
     """
     This model represents the relations between a specific team and its players.
@@ -33,4 +39,7 @@ class TeamMember(models.Model):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
     shirt_number = models.PositiveIntegerField() # In case a player is in multiple teams.
     joined_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.__str__()} of {self.team.team_name}'
 

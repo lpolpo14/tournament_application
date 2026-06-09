@@ -9,8 +9,14 @@ class Tournament(models.Model):
     end_date = models.DateTimeField()
     status = models.CharField(max_length=100, default='Scheduled')
 
+    def __str__(self):
+        return f'{self.name} ({self.start_date} to {self.end_date})'
+
 class TournamentMatch(models.Model):
     tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE)
     match = models.ForeignKey('matches.Match', on_delete=models.CASCADE) # String imports are best practice.
     registration_date = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=100, default='Scheduled')
+
+    def __str__(self):
+        return f'{self.match.__str__()} of {self.tournament.name}'

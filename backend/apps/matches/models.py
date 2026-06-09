@@ -14,3 +14,6 @@ class Match(models.Model):
     team1_score = models.PositiveIntegerField(null=True, blank=True) # No need for immediate initialization.
     team2_score = models.PositiveIntegerField(null=True, blank=True)
     match_status = models.CharField(max_length=100, default='Scheduled')
+
+    def __str__(self):
+        return f'{self.team1} vs {self.team2}'
