@@ -41,5 +41,5 @@ class TeamMember(models.Model):
     joined_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'{self.__str__()} of {self.team.team_name}'
+        return f'{self.player.__str__()} of {self.team.team_name}'
 
