@@ -8,7 +8,7 @@ from .models import Team, TeamMember
 class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
-        fields = '__all__' # Change this later.
+        fields = ["id", "team_name", "sport_name"] # This is safer since we decide what can be viewed by VUE
 
 class TeamMemberSerializer(serializers.ModelSerializer):
     class Meta:
