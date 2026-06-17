@@ -9,7 +9,7 @@ const error = ref('');
 async function loadTeams(){
   loading.value = true;
   try{
-    teams.value = getTeams();
+    teams.value = await getTeams();
   }
   catch(err){
     error.value = err.message;
@@ -33,8 +33,7 @@ onMounted(loadTeams)
 
       <ul v-else>
         <li v-for="team in teams" :key="team.id">
-          <span class="text-center">{{team.team_name}}</span>
-          <span class="text-center">{{team.sport_name}}</span>
+          <span class="text-center text-black">{{team.team_name}} --- {{team.sport_name}}</span>
         </li>
       </ul>
     </section>
