@@ -9,7 +9,7 @@ This project is being developed for the course 'Information Systems on the Inter
 - [x] Working Django REST + Vue Architecture
 - [x] Create Functional Models using Django
 - [ ] Optimize backend models and serializers
-- [ ] Add database contrains
+- [ ] Add database constraints
 - [ ] Create a dedicated Teams Page.
 - [ ] View all teams option.
 - [ ] Create Teams option.
