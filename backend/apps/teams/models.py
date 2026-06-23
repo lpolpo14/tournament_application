@@ -43,6 +43,7 @@ class Team(models.Model):
     sport_name = models.CharField(max_length=100)
     # logo_img = models.ImageField(upload_to='team_logo', null=True, blank=True)
     # We will add image later.
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['team_name']
@@ -67,13 +68,13 @@ class TeamMember(models.Model):
     def __str__(self):
         return f'{self.player.__str__()} of {self.team.team_name}'
 
-    def Meta:
+    class Meta:
         ordering = ["team__team_name", "shirt_number"] # With __ we can gain access to team variables!
         constraints = [
             UniqueConstraint(fields=['team', 'player'], name="team_player_unique"),
             UniqueConstraint(fields=['team', 'shirt_number'], name="shirt_number_unique_per_team"),
             CheckConstraint(condition=Q(shirt_number=1) & Q(shirt_number=99),
-                            name="player_main_shirt_number_between_1_and_99",
+                            name="team_main_shirt_number_between_1_and_99",
             )
         ]
 
