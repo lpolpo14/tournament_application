@@ -1,11 +1,11 @@
 const API_BASE_URL = 'http://localhost:8000/api';
 
-export async function getTeams(){
-    const response = await fetch(`${API_BASE_URL}/teams/`)
+import axios from "axios";
 
-    if(!response.ok){
-        throw new Error("Could not load teams");
-    }
+const instance = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 5000,
+  headers: { "Content-Type": "application/json"},
+});
 
-    return response.json();
-}
+export default api;
