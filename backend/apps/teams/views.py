@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets, filters
 
-from .serializers import TeamSerializer, PlayerSerializer, TeamMemberSerializer
+from .serializers import TeamSerializer, PlayerSerializer, TeamMemberSerializer, TeamMemberAddSerializer
 from .models import Team, Player, TeamMember
 
 
@@ -20,9 +20,12 @@ class PlayerViewSet(viewsets.ModelViewSet):
     ordering_fields = ["name", "surname", "main_shirt_number", "created_at"]
 
 class TeamMemberViewSet(viewsets.ModelViewSet):
-    serializer_class = TeamMemberSerializer
     queryset = TeamMember.objects.select_related('team', 'player').all() #Amazing time saver!
     # Instead of querying 3 times, we query once. Select_related returns the team and player objects as well!
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["team", "player", "shirt_number", "joined_at"]
     ordering = ["team", "shirt_number"]
+    def get_serializer_class(self):
+        if self.request.method in ["list", "retrieve"]:
+            return TeamMemberSerializer
+        return TeamMemberAddSerializer # for create

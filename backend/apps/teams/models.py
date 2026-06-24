@@ -60,8 +60,8 @@ class TeamMember(models.Model):
     Specifically, every object is a 1-1 relationship between a player and his respective team.
     This is flexible design.
     """
-    team = models.ForeignKey(Team, on_delete=models.CASCADE)
-    player = models.ForeignKey(Player, on_delete=models.CASCADE)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='members')
+    player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='team_memberships')
     shirt_number = models.PositiveIntegerField() # In case a player is in multiple teams. Might remove later
     joined_at = models.DateTimeField(auto_now_add=True)
 
@@ -73,7 +73,7 @@ class TeamMember(models.Model):
         constraints = [
             UniqueConstraint(fields=['team', 'player'], name="team_player_unique"),
             UniqueConstraint(fields=['team', 'shirt_number'], name="shirt_number_unique_per_team"),
-            CheckConstraint(condition=Q(shirt_number=1) & Q(shirt_number=99),
+            CheckConstraint(condition=Q(shirt_number__gte=1) & Q(shirt_number__lte=99),
                             name="team_main_shirt_number_between_1_and_99",
             )
         ]
