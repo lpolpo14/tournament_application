@@ -63,7 +63,7 @@ onMounted(loadTeams)
             required
             type="text"
             class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-2 outline-none focus:border-green-600"
-            placeholder="Panthers"
+            placeholder="Hraklara"
           />
         </label>
 
