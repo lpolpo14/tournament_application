@@ -23,7 +23,7 @@
           </div>
 
           <div class="text-center">
-            <a href="#" class="text-white bg-blue-500 text-center box-border border shadow-xs rounded border-transparent text-sm">Match Options</a>
+            <RouterLink to="/players" class="text-white bg-blue-500 text-center box-border border shadow-xs rounded border-transparent text-sm">Players Options</RouterLink>
           </div>
       </div>
     </div>
