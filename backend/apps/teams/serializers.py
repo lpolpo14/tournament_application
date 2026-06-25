@@ -1,6 +1,8 @@
 """
 Our first serializer! The following guide is amazing: https://github.com/fussionlab/VueJs-Django
 """
+from PIL import Image
+
 from rest_framework import serializers
 from .models import Team, TeamMember, Player
 
@@ -40,8 +42,53 @@ class TeamSerializer(serializers.ModelSerializer):
     logo_url = serializers.SerializerMethodField()
     class Meta:
         model = Team
-        fields = ["id", "team_name", "sport_name", "logo_img", "logo_url", "members", "created_at"] # This is safer since we decide what can be viewed by VUE
+        fields = ["id", "team_name", "sport_name", "logo_img", "logo_url" ,"members", "created_at"] # This is safer since we decide what can be viewed by VUE
         read_only_fields = ["id", "created_at", "logo_url", "members"]
+
+    def validate_logo_img(self, image):
+        max_size = 2 * 1024 * 1024 # 2 MegaBytes
+        max_width = 1200
+        max_height = 1200
+        allowed_content_types = {
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+        }
+
+        if image.size > max_size:
+            raise serializers.ValidationError(
+                "Logo image must be smaller than 2 MB."
+            )
+
+        content_type = getattr(image, "content_type", None)
+
+        if content_type not in allowed_content_types:
+            raise serializers.ValidationError(
+                "Only JPEG, PNG, and WEBP images are allowed."
+            )
+        # Based on https://gist.github.com/Tanimodori/66336dc8d2eb945711d2ec85beb6438f
+        try:
+            img = Image.open(image)
+            width, height = img.size
+            image_format = img.format
+            img.verify()
+        except (IOError, SyntaxError):
+            raise serializers.ValidationError("Invalid image file.")
+
+        image.seek(0)
+
+        if image_format not in allowed_content_types:
+            raise serializers.ValidationError(
+                "Only JPEG, PNG, and WEBP images are allowed."
+            )
+
+        if width > max_width or height > max_height:
+            raise serializers.ValidationError(
+                f"Logo dimensions must be at most {max_width}x{max_height} pixels."
+            )
+
+        return image
+
 
     def get_logo_url(self, obj):
         if not obj.logo_img:

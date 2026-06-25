@@ -1,4 +1,7 @@
-from django.core.validators import MinValueValidator, MaxValueValidator
+import uuid
+from pathlib import Path
+
+from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
 from django.db import models
 from django.db.models import CheckConstraint, Q, UniqueConstraint
 
@@ -35,13 +38,25 @@ class Player(models.Model):
         ]
 
 
+# Improved version from https://www.youtube.com/watch?v=ZF-UZAxO18k
+# uuid4 is unique compared to hash of file name.
+def team_logo_upload_path(instance, filename):
+    extension = Path(filename).suffix.lower()
+    return f"team_logos/{uuid.uuid4()}{extension}"
+
 class Team(models.Model):
     """
     This model represents a team.
     """
     team_name = models.CharField(max_length=100)
     sport_name = models.CharField(max_length=100)
-    logo_img = models.ImageField(upload_to='team_logos/', null=True, blank=True)
+    logo_img = models.ImageField(upload_to=team_logo_upload_path,
+                                 null=True,
+                                 blank=True,
+                                 validators=[FileExtensionValidator(
+                                     allowed_extensions=["jpg", "jpeg", "png", "webp"])
+                                 ]
+                                 )
 
 
     created_at = models.DateTimeField(auto_now_add=True)
