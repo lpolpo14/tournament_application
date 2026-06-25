@@ -9,12 +9,12 @@ This project is being developed for the course 'Information Systems on the Inter
 - [x] Working Django REST + Vue Architecture
 - [x] Create Functional Models using Django
 - [ ] Optimize backend models and serializers
-- [ ] Add database constraints
-- [ ] Create a dedicated Teams Page.
-- [ ] View all teams option.
-- [ ] Create Teams option.
-- [ ] Create/Get player options
-- [ ] Assign player to team option
+- [x] Add database constraints
+- [x] Create a dedicated Teams Page.
+- [x] View all teams option.
+- [x] Create Teams option.
+- [x] Create/Get player options
+- [x] Assign player to team option
 - [ ] Create a tournament option
 - [ ] View all tournaments options
 - [ ] Create/Add a match option

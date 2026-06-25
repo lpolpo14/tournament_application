@@ -41,8 +41,9 @@ class Team(models.Model):
     """
     team_name = models.CharField(max_length=100)
     sport_name = models.CharField(max_length=100)
-    # logo_img = models.ImageField(upload_to='team_logo', null=True, blank=True)
-    # We will add image later.
+    logo_img = models.ImageField(upload_to='team_logos/', null=True, blank=True)
+
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
