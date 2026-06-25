@@ -7,9 +7,10 @@ from .models import Team, TeamMember, Player
 
 class PlayerSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
+    position_display = serializers.CharField(source='get_position_display', read_only=True)
     class Meta:
         model = Player
-        fields = ["id","name", "surname","full_name", "main_shirt_number", "position", "created_at"]
+        fields = ["id","name", "surname","full_name", "main_shirt_number", "position", "position_display", "created_at"]
         read_only_fields = ["id", "full_name", "created_at"]
 
     def get_full_name(self, obj): # This is how we calculate variables based on the current object with Serializers!
@@ -42,7 +43,7 @@ class TeamSerializer(serializers.ModelSerializer):
 
 
 class addPlayerToTeamSerializer(serializers.Serializer):
-    player_id = serializers.IntegerField()
+    player_id = serializers.PrimaryKeyRelatedField(queryset=Player.objects.all(), source="player")
     shirt_number = serializers.IntegerField(min_value=1, max_value=99)
 
     def validate_player(self, value):
@@ -53,7 +54,7 @@ class addPlayerToTeamSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         team = self.context["team"]
-        player = attrs["player_id"]
+        player = attrs["player"]
         shirt_number = attrs["shirt_number"]
 
         if TeamMember.objects.filter(team=team, shirt_number=shirt_number).exists():
@@ -66,7 +67,7 @@ class addPlayerToTeamSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         team = self.context["team"]
-        player = validated_data["player_id"]
+        player = validated_data["player"]
         shirt_number = validated_data["shirt_number"]
 
         return TeamMember.objects.create(team=team, shirt_number=shirt_number, player=player)

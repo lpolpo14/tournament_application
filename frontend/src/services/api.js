@@ -10,6 +10,15 @@ const instance_api = axios.create({
 
 export default instance_api;
 
+export const playerApi = {
+  getAll() {
+    return instance_api.get('/players/')
+  },
+
+  create(data) {
+    return instance_api.post('/players/', data)
+  },
+}
 
 export const teamApi = {
   getAll() {
@@ -28,18 +37,7 @@ export const teamApi = {
     return instance_api.patch(`/teams/${id}/`, data)
   },
 
-  // Future endpoint.
-  getMine() {
-    return instance_api.get('/teams/my/')
-  },
-}
-
-export const playerApi = {
-  getAll() {
-    return instance_api.get('/players/')
-  },
-
-  create(data) {
-    return instance_api.post('/players/', data)
+  addPlayer(teamId, data) {
+    return instance_api.post(`/teams/${teamId}/add-player/`, data)
   },
 }

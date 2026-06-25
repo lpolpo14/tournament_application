@@ -1,28 +1,94 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { teamApi } from '@/services/api.js'
+import { playerApi, teamApi } from '@/services/api.js'
 
 const route = useRoute()
 
 const team = ref(null)
+const availablePlayers = ref([])
+
 const loading = ref(false)
+const playersLoading = ref(false)
+
 const error = ref('')
 const success = ref('')
+const addPlayerError = ref('')
+const addPlayerSuccess = ref('')
 
 const editMode = ref(route.query.edit === 'true')
+
+const playerSearchQuery = ref('')
 
 const editForm = ref({
   team_name: '',
   sport_name: '',
 })
 
+const shirtNumbers = ref({})
 
+// Temporary ownership placeholder.
+// Later this should check if the logged-in user owns this team.
 const isOwner = ref(true)
 
 const canEditTeam = computed(() => {
   return isOwner.value
 })
+
+const positions = [
+  { value: 'UK', label: 'Unknown' },
+  { value: 'GK', label: 'Goalkeeper' },
+  { value: 'DF', label: 'Defender' },
+  { value: 'MF', label: 'Midfielder' },
+  { value: 'FR', label: 'Forward' },
+]
+
+const teamPlayerIds = computed(() => {
+  if (!team.value?.members) {
+    return []
+  }
+
+  return team.value.members.map((member) => member.player.id)
+})
+
+const filteredPlayers = computed(() => {
+  const query = playerSearchQuery.value.trim().toLowerCase()
+
+  let players = [...availablePlayers.value]
+
+  players.sort((a, b) => {
+    return new Date(b.created_at) - new Date(a.created_at)
+  })
+
+  if (!query) {
+    return players
+  }
+
+  return players.filter((player) => {
+    const fullName = `${player.name ?? ''} ${player.surname ?? ''}`.toLowerCase()
+    const shirtNumber = String(player.main_shirt_number ?? '')
+    const position = String(player.position_display ?? player.position ?? '').toLowerCase()
+
+    return (
+      fullName.includes(query) ||
+      shirtNumber.includes(query) ||
+      position.includes(query)
+    )
+  })
+})
+
+function getPositionLabel(positionValue) {
+  const position = positions.find((item) => item.value === positionValue)
+  return position ? position.label : positionValue
+}
+
+function isPlayerAlreadyInTeam(playerId) {
+  return teamPlayerIds.value.includes(playerId)
+}
+
+function getDefaultShirtNumber(player) {
+  return shirtNumbers.value[player.id] ?? player.main_shirt_number ?? 1
+}
 
 async function loadTeam() {
   loading.value = true
@@ -30,6 +96,7 @@ async function loadTeam() {
 
   try {
     const response = await teamApi.getOne(route.params.id)
+
     team.value = response.data
 
     editForm.value = {
@@ -40,6 +107,25 @@ async function loadTeam() {
     error.value = 'Could not load team.'
   } finally {
     loading.value = false
+  }
+}
+
+async function loadAvailablePlayers() {
+  playersLoading.value = true
+  addPlayerError.value = ''
+
+  try {
+    const response = await playerApi.getAll()
+
+    availablePlayers.value = response.data
+
+    for (const player of response.data) {
+      shirtNumbers.value[player.id] = player.main_shirt_number ?? 1
+    }
+  } catch (err) {
+    addPlayerError.value = 'Could not load players.'
+  } finally {
+    playersLoading.value = false
   }
 }
 
@@ -58,12 +144,41 @@ async function updateTeam() {
   }
 }
 
-onMounted(loadTeam)
+async function addPlayerToTeam(player) {
+  addPlayerError.value = ''
+  addPlayerSuccess.value = ''
+
+  try {
+    await teamApi.addPlayer(route.params.id, {
+      player_id: player.id,
+      shirt_number: getDefaultShirtNumber(player),
+    })
+
+    addPlayerSuccess.value = `${player.name} ${player.surname} was added to the team.`
+
+    await loadTeam()
+  } catch (err) {
+    if (err.response?.data?.non_field_errors) {
+      addPlayerError.value = err.response.data.non_field_errors[0]
+    } else if (err.response?.data?.shirt_number) {
+      addPlayerError.value = err.response.data.shirt_number[0]
+    } else if (err.response?.data?.player_id) {
+      addPlayerError.value = err.response.data.player_id[0]
+    } else {
+      addPlayerError.value = 'Could not add player to team.'
+    }
+  }
+}
+
+onMounted(async () => {
+  await loadTeam()
+  await loadAvailablePlayers()
+})
 </script>
 
 <template>
   <main class="min-h-screen bg-gray-50 px-6 py-10">
-    <div class="mx-auto max-w-5xl">
+    <div class="mx-auto max-w-6xl">
       <p
         v-if="loading"
         class="text-gray-600"
@@ -111,10 +226,6 @@ onMounted(loadTeam)
           <h2 class="text-2xl font-bold text-gray-900">
             Edit Team
           </h2>
-
-          <p class="mt-1 text-sm text-gray-600">
-            Later this section can also include the team logo and player management.
-          </p>
 
           <form
             @submit.prevent="updateTeam"
@@ -169,24 +280,13 @@ onMounted(loadTeam)
         </section>
 
         <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 class="text-2xl font-bold text-gray-900">
-                Players
-              </h2>
+          <h2 class="text-2xl font-bold text-gray-900">
+            Team Players
+          </h2>
 
-              <p class="mt-1 text-sm text-gray-600">
-                Players registered in this team.
-              </p>
-            </div>
-
-            <button
-              v-if="canEditTeam"
-              class="rounded-xl border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-            >
-              Add Player
-            </button>
-          </div>
+          <p class="mt-1 text-sm text-gray-600">
+            Players currently registered in this team.
+          </p>
 
           <p
             v-if="!team.members || team.members.length === 0"
@@ -202,8 +302,9 @@ onMounted(loadTeam)
             <table class="w-full text-left text-sm">
               <thead class="bg-gray-50 text-gray-700">
                 <tr>
-                  <th class="px-4 py-3">#</th>
+                  <th class="px-4 py-3">Team #</th>
                   <th class="px-4 py-3">Name</th>
+                  <th class="px-4 py-3">Main #</th>
                   <th class="px-4 py-3">Position</th>
                 </tr>
               </thead>
@@ -212,17 +313,22 @@ onMounted(loadTeam)
                 <tr
                   v-for="member in team.members"
                   :key="member.id"
+                  class="hover:bg-gray-50"
                 >
                   <td class="px-4 py-3 font-semibold">
-                    {{ member.shirt_number }}
+                    #{{ member.shirt_number }}
                   </td>
 
-                  <td class="px-4 py-3">
-                    {{ member.player?.name }} {{ member.player?.surname }}
+                  <td class="px-4 py-3 font-medium text-gray-900">
+                    {{ member.player.full_name }}
                   </td>
 
-                  <td class="px-4 py-3">
-                    {{ member.player?.position }}
+                  <td class="px-4 py-3 text-gray-700">
+                    #{{ member.player.main_shirt_number }}
+                  </td>
+
+                  <td class="px-4 py-3 text-gray-700">
+                    {{ member.player.position_display }}
                   </td>
                 </tr>
               </tbody>
@@ -230,23 +336,140 @@ onMounted(loadTeam)
           </div>
         </section>
 
+        <!-- Add player to team -->
         <section
           v-if="canEditTeam"
           class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
         >
-          <h2 class="text-2xl font-bold text-gray-900">
-            Team Logo
-          </h2>
+          <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-900">
+                Add Player to Team
+              </h2>
 
-          <p class="mt-1 text-sm text-gray-600">
-            Logo upload can be added after enabling an ImageField in the backend.
+              <p class="mt-1 text-sm text-gray-600">
+                Search existing players and add them to this team.
+              </p>
+            </div>
+
+            <label class="w-full md:max-w-sm">
+              <span class="text-sm font-medium text-gray-700">
+                Search players
+              </span>
+
+              <input
+                v-model="playerSearchQuery"
+                type="search"
+                class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-2 outline-none focus:border-green-600"
+                placeholder="Search by name, number, or position"
+              />
+            </label>
+          </div>
+
+          <p
+            v-if="addPlayerSuccess"
+            class="mt-6 rounded-xl bg-green-50 p-3 text-sm text-green-700"
+          >
+            {{ addPlayerSuccess }}
           </p>
 
-          <button
-            class="mt-5 rounded-xl border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          <p
+            v-if="addPlayerError"
+            class="mt-6 rounded-xl bg-red-50 p-3 text-sm text-red-700"
           >
-            Upload Logo
-          </button>
+            {{ addPlayerError }}
+          </p>
+
+          <p
+            v-if="playersLoading"
+            class="mt-6 text-gray-600"
+          >
+            Loading players...
+          </p>
+
+          <p
+            v-else-if="availablePlayers.length === 0"
+            class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
+          >
+            No players are available.
+          </p>
+
+          <p
+            v-else-if="filteredPlayers.length === 0"
+            class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
+          >
+            No players match your search.
+          </p>
+
+          <div
+            v-else
+            class="mt-6 overflow-x-auto rounded-xl border border-gray-200"
+          >
+            <table class="w-full text-left text-sm">
+              <thead class="bg-gray-50 text-gray-700">
+                <tr>
+                  <th class="px-4 py-3">Name</th>
+                  <th class="px-4 py-3">Main #</th>
+                  <th class="px-4 py-3">Team #</th>
+                  <th class="px-4 py-3">Position</th>
+                  <th class="px-4 py-3">Created</th>
+                  <th class="px-4 py-3">Action</th>
+                </tr>
+              </thead>
+
+              <tbody class="divide-y divide-gray-200">
+                <tr
+                  v-for="player in filteredPlayers"
+                  :key="player.id"
+                  class="hover:bg-gray-50"
+                >
+                  <td class="px-4 py-3 font-medium text-gray-900">
+                    {{ player.full_name }}
+                  </td>
+
+                  <td class="px-4 py-3 text-gray-700">
+                    #{{ player.main_shirt_number }}
+                  </td>
+
+                  <td class="px-4 py-3 text-gray-700">
+                    <input
+                      v-model.number="shirtNumbers[player.id]"
+                      type="number"
+                      min="1"
+                      max="99"
+                      :disabled="isPlayerAlreadyInTeam(player.id)"
+                      class="w-20 rounded-lg border border-gray-300 px-3 py-1 outline-none focus:border-green-600 disabled:bg-gray-100"
+                    />
+                  </td>
+
+                  <td class="px-4 py-3 text-gray-700">
+                    {{ player.position_display ?? getPositionLabel(player.position) }}
+                  </td>
+
+                  <td class="px-4 py-3 text-gray-700">
+                    {{ new Date(player.created_at).toLocaleDateString() }}
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <button
+                      v-if="!isPlayerAlreadyInTeam(player.id)"
+                      @click="addPlayerToTeam(player)"
+                      class="rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800"
+                    >
+                      Add
+                    </button>
+
+                    <span
+                      v-else
+                      class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-500"
+                    >
+                      Added
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </section>
       </section>
     </div>
