@@ -33,3 +33,13 @@ export const teamApi = {
     return instance_api.get('/teams/my/')
   },
 }
+
+export const playerApi = {
+  getAll() {
+    return instance_api.get('/players/')
+  },
+
+  create(data) {
+    return instance_api.post('/players/', data)
+  },
+}

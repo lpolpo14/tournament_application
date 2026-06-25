@@ -11,6 +11,7 @@ const menus = {
     { label: 'Home', path: '/' },
     { label: 'Tournaments', path: '/tournaments' },
     { label: 'Teams', path: '/teams' },
+    { label: 'Players', path: '/players'}
   ],
 
   manager: [
