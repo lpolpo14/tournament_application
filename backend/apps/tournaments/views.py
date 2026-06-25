@@ -35,7 +35,7 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 "points": 0,
             }
 
-        completed_matches = (Match.object.select_related("team1","team2")
+        completed_matches = (Match.objects.select_related("team1","team2")
                              .filter(tournament=tournament, match_status="Completed"))
         for match in completed_matches:
             team1 = match.team1
@@ -73,10 +73,11 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 team1_standing["points"] += 1
                 team2_standing["points"] += 1
 
-            standings_list = list(standings.values())
+        standings_list = list(standings.values())
 
-            standings_list.sort(key=lambda x: -x["points"], reverse=True)
+        standings_list.sort(key=lambda x: -x["points"])
 
-            for index, team_entry in enumerate(standings_list, start=1):
-                team_entry["position"] = index
-            return Response(standings_list)
+        for index, team_entry in enumerate(standings_list, start=1):
+            team_entry["position"] = index
+
+        return Response(standings_list)
