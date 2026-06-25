@@ -33,26 +33,40 @@ class TeamMemberAddSerializer(serializers.ModelSerializer):
         fields = ["id", "team", "player", "shirt_number", "joined_at"]
         read_only_fields = ["id", "joined_at"]
 
-    def validate(self, attrs):
-        """
-        Custom validate function
-        """
-        team = attrs.get("team")
-        player = attrs.get("player")
-        shirt_number = attrs.get("shirt_number")
-
-        queryset = TeamMember.objects.all()
-
-        if queryset.filter(team=team, player=player).exists():
-            raise serializers.ValidationError("This team member already exists")
-
-        if team and shirt_number and queryset.filter(team=team, shirt_number=shirt_number).exists():
-            raise serializers.ValidationError("The shirt number is already assigned")
-
-        return attrs
 
 class TeamSerializer(serializers.ModelSerializer):
     members = TeamMemberSerializer(many=True, read_only=True)
     class Meta:
         model = Team
         fields = ["id", "team_name", "sport_name", "members", "created_at"] # This is safer since we decide what can be viewed by VUE
+
+
+class addPlayerToTeamSerializer(serializers.Serializer):
+    player_id = serializers.IntegerField()
+    shirt_number = serializers.IntegerField(min_value=1, max_value=99)
+
+    def validate_player(self, value):
+        try:
+            return Player.objects.get(id=value)
+        except Player.DoesNotExist:
+            raise serializers.ValidationError("Player does not exist")
+
+    def validate(self, attrs):
+        team = self.context["team"]
+        player = attrs["player_id"]
+        shirt_number = attrs["shirt_number"]
+
+        if TeamMember.objects.filter(team=team, shirt_number=shirt_number).exists():
+            raise serializers.ValidationError("Shirt number is already in use")
+
+        if TeamMember.objects.filter(team=team, player=player).exists():
+            raise serializers.ValidationError("Player already exists in team")
+
+        return attrs
+
+    def create(self, validated_data):
+        team = self.context["team"]
+        player = validated_data["player_id"]
+        shirt_number = validated_data["shirt_number"]
+
+        return TeamMember.objects.create(team=team, shirt_number=shirt_number, player=player)
