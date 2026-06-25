@@ -20,6 +20,26 @@ const editMode = ref(route.query.edit === 'true')
 
 const playerSearchQuery = ref('')
 
+const deletePlayerError = ref('')
+const deletePlayerSuccess = ref('')
+
+async function removePlayerFromTeam(member) {
+  deletePlayerError.value = ''
+  deletePlayerSuccess.value = ''
+
+  const playerName = member.player?.full_name ?? 'Player'
+
+  try {
+    await teamApi.removePlayer(route.params.id, member.id)
+
+    deletePlayerSuccess.value = `${playerName} was removed from the team.`
+
+    await loadTeam()
+  } catch (err) {
+    deletePlayerError.value = 'Could not remove player from team.'
+  }
+}
+
 const editForm = ref({
   team_name: '',
   sport_name: '',
@@ -302,39 +322,65 @@ onMounted(async () => {
             <table class="w-full text-left text-sm">
               <thead class="bg-gray-50 text-gray-700">
                 <tr>
-                  <th class="px-4 py-3">Team #</th>
-                  <th class="px-4 py-3">Name</th>
-                  <th class="px-4 py-3">Main #</th>
-                  <th class="px-4 py-3">Position</th>
-                </tr>
+                     <th class="px-4 py-3">Team #</th>
+                       <th class="px-4 py-3">Name</th>
+                    <th class="px-4 py-3">Main #</th>
+                     <th class="px-4 py-3">Position</th>
+                      <th v-if="canEditTeam" class="px-4 py-3">Action</th>
+              </tr>
               </thead>
 
               <tbody class="divide-y divide-gray-200">
                 <tr
-                  v-for="member in team.members"
-                  :key="member.id"
-                  class="hover:bg-gray-50"
-                >
-                  <td class="px-4 py-3 font-semibold">
-                    #{{ member.shirt_number }}
-                  </td>
+  v-for="member in team.members"
+  :key="member.id"
+  class="hover:bg-gray-50"
+>
+  <td class="px-4 py-3 font-semibold">
+    #{{ member.shirt_number }}
+  </td>
 
-                  <td class="px-4 py-3 font-medium text-gray-900">
-                    {{ member.player.full_name }}
-                  </td>
+  <td class="px-4 py-3 font-medium text-gray-900">
+    {{ member.player.full_name }}
+  </td>
 
-                  <td class="px-4 py-3 text-gray-700">
-                    #{{ member.player.main_shirt_number }}
-                  </td>
+  <td class="px-4 py-3 text-gray-700">
+    #{{ member.player.main_shirt_number }}
+  </td>
 
-                  <td class="px-4 py-3 text-gray-700">
-                    {{ member.player.position_display }}
-                  </td>
-                </tr>
+  <td class="px-4 py-3 text-gray-700">
+    {{ member.player.position_display ?? getPositionLabel(member.player.position) }}
+  </td>
+
+  <td
+    v-if="canEditTeam"
+    class="px-4 py-3"
+  >
+    <button
+      @click="removePlayerFromTeam(member)"
+      class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+    >
+      Delete
+    </button>
+  </td>
+</tr>
               </tbody>
             </table>
           </div>
         </section>
+        <p
+  v-if="deletePlayerSuccess"
+  class="mt-6 rounded-xl bg-green-50 p-3 text-sm text-green-700"
+>
+  {{ deletePlayerSuccess }}
+</p>
+
+<p
+  v-if="deletePlayerError"
+  class="mt-6 rounded-xl bg-red-50 p-3 text-sm text-red-700"
+>
+  {{ deletePlayerError }}
+</p>
 
         <!-- Add player to team -->
         <section

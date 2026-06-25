@@ -40,4 +40,7 @@ export const teamApi = {
   addPlayer(teamId, data) {
     return instance_api.post(`/teams/${teamId}/add-player/`, data)
   },
+  removePlayer(teamId, memberId) {
+  return instance_api.delete(`/teams/${teamId}/members/${memberId}/`)
+  },
 }
