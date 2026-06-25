@@ -3,6 +3,7 @@ import {createRouter, createWebHistory} from "vue-router";
 import HomeView from '@/views/HomeView.vue'
 import TeamsView from "@/views/TeamsView.vue";
 import PlayersView from "@/views/PlayersView.vue";
+import MatchView from "@/views/MatchView.vue";
 
 // Based on https://github.com/fussionlab/VueJs-Django
 const routes = [
