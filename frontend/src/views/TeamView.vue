@@ -18,6 +18,22 @@ const addPlayerSuccess = ref('')
 
 const editMode = ref(route.query.edit === 'true')
 
+
+const selectedLogo = ref(null)
+const logoPreview = ref('')
+
+function handleLogoChange(event) {
+  const file = event.target.files[0]
+
+  selectedLogo.value = file ?? null
+
+  if (file) {
+    logoPreview.value = URL.createObjectURL(file)
+  } else {
+    logoPreview.value = ''
+  }
+}
+
 const playerSearchQuery = ref('')
 
 const deletePlayerError = ref('')
@@ -153,13 +169,26 @@ async function updateTeam() {
   error.value = ''
   success.value = ''
 
+  const formData = new FormData()
+
+  formData.append('team_name', editForm.value.team_name)
+  formData.append('sport_name', editForm.value.sport_name)
+
+  if (selectedLogo.value instanceof File) {
+    formData.append('logo_img', selectedLogo.value)
+  }
+
   try {
-    const response = await teamApi.update(route.params.id, editForm.value)
+    const response = await teamApi.update(route.params.id, formData)
 
     team.value = response.data
     success.value = 'Team updated successfully.'
     editMode.value = false
+
+    selectedLogo.value = null
+    logoPreview.value = ''
   } catch (err) {
+    console.log(err.response?.data)
     error.value = 'Could not update team.'
   }
 }
@@ -219,15 +248,33 @@ onMounted(async () => {
       >
         <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 class="text-4xl font-bold text-gray-900">
-                {{ team.team_name }}
-              </h1>
+                    <div class="flex items-center gap-5">
+          <div class="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
+          <img
+      v-if="team.logo_url"
+      :src="team.logo_url"
+      :alt="`${team.team_name} logo`"
+      class="h-full w-full object-cover"
+    />
 
-              <p class="mt-2 text-lg text-gray-600">
-                {{ team.sport_name }}
-              </p>
-            </div>
+    <span
+      v-else
+      class="text-3xl font-bold text-gray-400"
+    >
+      {{ team.team_name?.charAt(0) }}
+    </span>
+  </div>
+
+  <div>
+    <h1 class="text-4xl font-bold text-gray-900">
+      {{ team.team_name }}
+    </h1>
+
+    <p class="mt-2 text-lg text-gray-600">
+      {{ team.sport_name }}
+    </p>
+  </div>
+</div>
 
             <button
               v-if="canEditTeam && !editMode"
@@ -272,6 +319,32 @@ onMounted(async () => {
                 class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-2 outline-none focus:border-green-600"
               />
             </label>
+
+            <label class="block">
+  <span class="text-sm font-medium text-gray-700">Team logo</span>
+
+  <input
+    type="file"
+    accept="image/*"
+    @change="handleLogoChange"
+    class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-2 text-sm text-gray-700 outline-none focus:border-green-600"
+  />
+</label>
+
+<div
+  v-if="logoPreview || team.logo_url"
+  class="mt-4 flex items-center gap-4"
+>
+  <img
+    :src="logoPreview || team.logo_url"
+    alt="Team logo preview"
+    class="h-20 w-20 rounded-xl border border-gray-200 object-cover"
+  />
+
+  <p class="text-sm text-gray-600">
+    Logo preview
+  </p>
+</div>
 
             <div class="flex gap-3">
               <button

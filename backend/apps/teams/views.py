@@ -2,6 +2,7 @@ from django.shortcuts import render
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 
 from .serializers import TeamSerializer, PlayerSerializer, addPlayerToTeamSerializer, TeamMemberSerializer
 from .models import Team, Player, TeamMember
@@ -14,6 +15,7 @@ class TeamViewSet(viewsets.ModelViewSet):
     queryset = Team.objects.prefetch_related('members__player').all() # Prefetch speeds up things a lot!
     search_fields = ["team_name", "sport_name"]
     ordering_fields = ["team_name", "sport_name", "created_at"]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     @action(detail=True, methods=["post"], url_path="add-player")
     def add_player(self, request, pk=None):

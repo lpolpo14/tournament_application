@@ -37,10 +37,22 @@ class TeamMemberAddSerializer(serializers.ModelSerializer):
 
 class TeamSerializer(serializers.ModelSerializer):
     members = TeamMemberSerializer(many=True, read_only=True)
+    logo_url = serializers.SerializerMethodField()
     class Meta:
         model = Team
-        fields = ["id", "team_name", "sport_name", "members", "created_at"] # This is safer since we decide what can be viewed by VUE
+        fields = ["id", "team_name", "sport_name", "logo_img", "logo_url", "members", "created_at"] # This is safer since we decide what can be viewed by VUE
+        read_only_fields = ["id", "created_at", "logo_url", "members"]
 
+    def get_logo_url(self, obj):
+        if not obj.logo_img:
+            return None
+
+        request = self.context.get('request')
+
+        if request:
+            return request.build_absolute_uri(obj.logo_img.url)
+
+        return obj.logo_img.url
 
 class addPlayerToTeamSerializer(serializers.Serializer):
     player_id = serializers.PrimaryKeyRelatedField(queryset=Player.objects.all(), source="player")
