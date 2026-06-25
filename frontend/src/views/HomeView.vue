@@ -1,34 +1,23 @@
 <template>
-  <div class="bg-white">
-    <div class="text-center px-6 py-8 bg-green-200">
-      <h1 class="text-5xl font-bold text-balance text-gray-900">Unipi Tournaments</h1>
+  <main class="bg-gray-50">
+    <section class="mx-auto flex min-h-[70vh] max-w-7xl flex-col items-center justify-center px-6 py-20 text-center">
+      <h1 class="text-5xl font-bold tracking-tight text-gray-900 md:text-6xl">
+        Organize sports tournaments with ease.
+      </h1>
 
-      <div class="mt-6">
-          <h3 class="text-3xl font-semibold text-balance text-gray-900">Create, Manage and Enjoy Sports!</h3>
+      <p class="mt-6 max-w-2xl text-lg leading-8 text-gray-600">
+        Unipi Sports helps teams, referees, and organizers manage tournaments,
+        matches, players, and results in one simple platform.
+      </p>
+
+      <div class="mt-10">
+        <RouterLink
+          to="/login"
+          class="rounded-xl bg-green-700 px-8 py-3 text-base font-semibold text-white shadow-sm hover:bg-green-800"
+        >
+          Begin
+        </RouterLink>
       </div>
-    </div>
-
-    <div class="mt-12">
-      <div class="flex min-h-full flex-col px-6 py-8 lg:px-8 justify-center">
-          <div>
-            <h3 class="text-center text-3xl font-semibold text-gray-800">Options</h3>
-          </div>
-
-          <div class="mt-5 text-center">
-            <RouterLink to='/teams' class="text-white bg-blue-500 box-border border shadow-xs rounded border-transparent text-sm">Teams Options</RouterLink>
-          </div>
-
-         <div class="text-center">
-            <a href="#" class="text-white bg-blue-500 text-center box-border border shadow-xs rounded border-transparent text-sm">Tournaments Options</a>
-          </div>
-
-          <div class="text-center">
-            <RouterLink to="/players" class="text-white bg-blue-500 text-center box-border border shadow-xs rounded border-transparent text-sm">Players Options</RouterLink>
-          </div>
-      </div>
-    </div>
-
-  </div>
+    </section>
+  </main>
 </template>
-<script setup lang="ts">
-</script>
