@@ -50,10 +50,13 @@ class TeamSerializer(serializers.ModelSerializer):
         max_width = 1200
         max_height = 1200
         allowed_content_types = {
+            "image/jpg",
             "image/jpeg",
             "image/png",
             "image/webp",
         }
+
+        allowed_image_formats = {"JPG", "JPEG", "PNG", "WEBP"}
 
         if image.size > max_size:
             raise serializers.ValidationError(
@@ -64,7 +67,7 @@ class TeamSerializer(serializers.ModelSerializer):
 
         if content_type not in allowed_content_types:
             raise serializers.ValidationError(
-                "Only JPEG, PNG, and WEBP images are allowed."
+                "Only JPG, JPEG, PNG, and WEBP images are allowed."
             )
         # Based on https://gist.github.com/Tanimodori/66336dc8d2eb945711d2ec85beb6438f
         try:
@@ -77,9 +80,9 @@ class TeamSerializer(serializers.ModelSerializer):
 
         image.seek(0)
 
-        if image_format not in allowed_content_types:
+        if image_format not in allowed_image_formats:
             raise serializers.ValidationError(
-                "Only JPEG, PNG, and WEBP images are allowed."
+                "Only JPG, JPEG, PNG, and WEBP images are allowed."
             )
 
         if width > max_width or height > max_height:

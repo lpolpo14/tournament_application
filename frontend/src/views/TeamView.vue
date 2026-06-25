@@ -13,6 +13,8 @@ const playersLoading = ref(false)
 
 const error = ref('')
 const success = ref('')
+const editError = ref('')
+
 const addPlayerError = ref('')
 const addPlayerSuccess = ref('')
 
@@ -165,8 +167,51 @@ async function loadAvailablePlayers() {
   }
 }
 
+function formatApiErrors(errorData) {
+  if (!errorData) {
+    return 'Something went wrong.'
+  }
+
+  if (typeof errorData === 'string') {
+    return errorData
+  }
+
+  if (Array.isArray(errorData)) {
+    return errorData.join(' ')
+  }
+
+  if (typeof errorData === 'object') {
+    const fieldLabels = {
+      team_name: 'Team name',
+      sport_name: 'Sport',
+      logo_img: 'Team logo',
+      non_field_errors: 'Error',
+      detail: 'Error',
+    }
+
+    return Object.entries(errorData)
+      .map(([field, messages]) => {
+        const label = fieldLabels[field] ?? field
+
+        if (Array.isArray(messages)) {
+          return `${label}: ${messages.join(' ')}`
+        }
+
+        if (typeof messages === 'object') {
+          return `${label}: ${formatApiErrors(messages)}`
+        }
+
+        return `${label}: ${messages}`
+      })
+      .join(' ')
+  }
+
+  return 'Something went wrong.'
+}
+
 async function updateTeam() {
   error.value = ''
+  editError.value = ''
   success.value = ''
 
   const formData = new FormData()
@@ -189,7 +234,8 @@ async function updateTeam() {
     logoPreview.value = ''
   } catch (err) {
     console.log(err.response?.data)
-    error.value = 'Could not update team.'
+
+    editError.value = formatApiErrors(err.response?.data)
   }
 }
 
@@ -325,7 +371,7 @@ onMounted(async () => {
 
   <input
     type="file"
-    accept="image/*"
+    accept="image/png,image/jpeg,image/jpg,image/webp"
     @change="handleLogoChange"
     class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-2 text-sm text-gray-700 outline-none focus:border-green-600"
   />
@@ -364,13 +410,19 @@ onMounted(async () => {
             </div>
 
             <p
-              v-if="success"
-              class="rounded-xl bg-green-50 p-3 text-sm text-green-700"
-            >
-              {{ success }}
+          v-if="editError"
+                class="rounded-xl bg-red-50 p-3 text-sm text-red-700"
+              >
+            {{ editError }}
             </p>
           </form>
         </section>
+        <p
+              v-if="success"
+                class="rounded-xl bg-green-50 p-3 text-sm text-green-700"
+              >
+                  {{ success }}
+            </p>
 
         <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 class="text-2xl font-bold text-gray-900">

@@ -23,7 +23,7 @@ This project is being developed for the course 'Information Systems on the Inter
 - [ ] Submission of final score
 - [ ] Add player details as well as granted cards (yellow/red cards etc)
 - [ ] Create a tournament dashboard with team ordering based on score
-- [ ] Add team logos
+- [x] Add team logos
 - [ ] Add random generation of teams, matches within a tournament
 - [ ] Add player statistics
 - [ ] Add Authentication
@@ -41,6 +41,7 @@ This project is being developed for the course 'Information Systems on the Inter
 ### Security
 
 - [ ] CSP Headers
+- [ ] Team Logos Security (OWASP + Django + uuid)
 - [ ] CSRF Headers
 - [ ] Session Management
 - [ ] Authentication \& Authorization

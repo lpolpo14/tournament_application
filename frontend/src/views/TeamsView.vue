@@ -22,6 +22,9 @@ const currentUser = ref({
   role: 'team_organizer',
 })
 
+function getTeamInitial(team) {
+  return team.team_name?.charAt(0)?.toUpperCase() ?? '?'
+}
 
 const canManageTeams = computed(() => {
   return currentUser.value.isAuthenticated && currentUser.value.role === 'team_organizer'
@@ -191,18 +194,38 @@ onMounted(async () => {
                 :key="team.id"
                 class="rounded-xl border border-gray-200 bg-white p-5"
               >
-                <h3 class="text-lg font-bold text-gray-900">
-                  {{ team.team_name }}
-                </h3>
+                <div class="flex items-center gap-4">
+  <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
+    <img
+      v-if="team.logo_url"
+      :src="team.logo_url"
+      :alt="`${team.team_name} logo`"
+      class="h-full w-full object-cover"
+    />
 
-                <p class="text-sm text-gray-600">
-                  {{ team.sport_name }}
-                </p>
+    <span
+      v-else
+      class="text-xl font-bold text-gray-400"
+    >
+      {{ getTeamInitial(team) }}
+    </span>
+  </div>
+
+  <div>
+    <h3 class="text-lg font-bold text-gray-900">
+      {{ team.team_name }}
+    </h3>
+
+    <p class="text-sm text-gray-600">
+      {{ team.sport_name }}
+    </p>
+  </div>
+</div>
 
                 <p class="mt-3 text-sm text-gray-700">
                   Players:
                   <span class="font-semibold">
-                    {{ team.player_count ?? 0 }}
+                    {{ team.members?.length ?? 0 }}
                   </span>
                 </p>
 
@@ -255,26 +278,46 @@ onMounted(async () => {
           class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3"
         >
           <RouterLink
-            v-for="team in teams"
-            :key="team.id"
-            :to="{ name: 'team', params: { id: team.id } }"
-            class="rounded-xl border border-gray-200 p-5 hover:border-green-600 hover:bg-green-50"
-          >
-            <h3 class="text-lg font-bold text-gray-900">
-              {{ team.team_name }}
-            </h3>
+  v-for="team in teams"
+  :key="team.id"
+  :to="{ name: 'team', params: { id: team.id } }"
+  class="rounded-xl border border-gray-200 p-5 hover:border-green-600 hover:bg-green-50"
+>
+  <div class="flex items-center gap-4">
+    <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
+      <img
+        v-if="team.logo_url"
+        :src="team.logo_url"
+        :alt="`${team.team_name} logo`"
+        class="h-full w-full object-cover"
+      />
 
-            <p class="text-sm text-gray-600">
-              {{ team.sport_name }}
-            </p>
+      <span
+        v-else
+        class="text-xl font-bold text-gray-400"
+      >
+        {{ getTeamInitial(team) }}
+      </span>
+    </div>
 
-            <p class="mt-3 text-sm text-gray-700">
-              Players:
-              <span class="font-semibold">
-                {{ team.player_count ?? 0 }}
-              </span>
-            </p>
-          </RouterLink>
+    <div>
+      <h3 class="text-lg font-bold text-gray-900">
+        {{ team.team_name }}
+      </h3>
+
+      <p class="text-sm text-gray-600">
+        {{ team.sport_name }}
+      </p>
+    </div>
+  </div>
+
+  <p class="mt-4 text-sm text-gray-700">
+    Players:
+    <span class="font-semibold">
+      {{ team.members?.length ?? 0 }}
+    </span>
+  </p>
+</RouterLink>
         </div>
       </section>
     </div>
