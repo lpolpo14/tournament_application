@@ -2,6 +2,7 @@ import {createRouter, createWebHistory} from "vue-router";
 
 import HomeView from '@/views/HomeView.vue'
 import TeamsView from "@/views/TeamsView.vue";
+import TeamView from "@/views/TeamView.vue";
 import PlayersView from "@/views/PlayersView.vue";
 import TournamentCreate from "@/views/TournamentCreate.vue";
 import TournamentsView from "@/views/TournamentsView.vue";
@@ -28,7 +29,7 @@ const routes = [
     {
         path: '/teams/:id',
         name: 'team',
-        component: TeamsView
+        component: TeamView
     },
     {
         path: "/tournaments",

@@ -9,3 +9,27 @@ const instance_api = axios.create({
 });
 
 export default instance_api;
+
+
+export const teamApi = {
+  getAll() {
+    return instance_api.get('/teams/')
+  },
+
+  getOne(id) {
+    return instance_api.get(`/teams/${id}/`)
+  },
+
+  create(data) {
+    return instance_api.post('/teams/', data)
+  },
+
+  update(id, data) {
+    return instance_api.patch(`/teams/${id}/`, data)
+  },
+
+  // Future endpoint.
+  getMine() {
+    return instance_api.get('/teams/my/')
+  },
+}
