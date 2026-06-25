@@ -3,7 +3,8 @@ import {createRouter, createWebHistory} from "vue-router";
 import HomeView from '@/views/HomeView.vue'
 import TeamsView from "@/views/TeamsView.vue";
 import PlayersView from "@/views/PlayersView.vue";
-import MatchView from "@/views/MatchView.vue";
+import TournamentCreate from "@/views/TournamentCreate.vue";
+import TournamentsView from "@/views/TournamentsView.vue";
 
 // Based on https://github.com/fussionlab/VueJs-Django
 const routes = [
@@ -26,7 +27,17 @@ const routes = [
         path: '/teams/:id',
         name: 'team',
         component: TeamsView
-    }
+    },
+    {
+        path: "/tournaments",
+        name: "tournaments",
+        component: TournamentsView
+     },
+    {
+        path: "/tournaments/create",
+        name: "tournament-create",
+        component: TournamentCreate
+    },
 ]
 
 const router = createRouter({

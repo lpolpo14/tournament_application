@@ -4,11 +4,17 @@ from django.db import models
 class Tournament(models.Model):
     name = models.CharField(max_length=100)
     sport = models.CharField(max_length=100)
-    teams = models.ManyToManyField('teams.Team', related_name='tournamentParticipation')
+    teams = models.ManyToManyField('teams.Team',blank=True, related_name='tournamentParticipation')
     location = models.CharField(max_length=100)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
-    status = models.CharField(max_length=100, default='Scheduled')
+
+    class Status(models.TextChoices):
+        SCHEDULED = "Scheduled", "Scheduled"
+        COMPLETED = "Completed", "Completed"
+        CANCELLED = "Cancelled", "Cancelled"
+        ONGOING = "Ongoing", "Ongoing"
+    status = models.CharField(max_length=100, choices= Status.choices, default='Scheduled')
 
     def __str__(self):
         return f'{self.name} ({self.start_date} to {self.end_date})'

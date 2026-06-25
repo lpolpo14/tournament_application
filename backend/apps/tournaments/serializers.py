@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from backend.apps.tournaments.models import Tournament
+from ..tournaments.models import Tournament
 
 
 class TournamentSerializer(serializers.ModelSerializer):
