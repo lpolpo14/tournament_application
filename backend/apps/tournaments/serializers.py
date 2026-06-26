@@ -1,9 +1,36 @@
 from rest_framework import serializers
 
-from ..tournaments.models import Tournament
-
+from ..teams.models import Team
+from ..teams.serializers import TeamSerializer
+from ..tournaments.models import Tournament, TournamentParticipation
 
 class TournamentSerializer(serializers.ModelSerializer):
+    teams = TeamSerializer(many=True, read_only=True)
+
+    teams_ids = serializers.PrimaryKeyRelatedField(
+        source="teams", queryset=Team.objects.all(), many=True, write_only=True, required=False
+    )
+
+    pending_registration_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Tournament
-        fields = "__all__"
+        fields = ["id", "name", "sport", "teams", "teams_ids",
+                  "location", "start_date", "end_date", "status", "pending_registration_count"]
+
+    def get_pending_registration_count(self, obj):
+        return obj.registrations.filter(
+            status=TournamentParticipation.Status.PENDING,
+        ).count()
+
+
+class TournamentParticipationSerializer(serializers.ModelSerializer):
+    team_name = serializers.SerializerMethodField()
+    tournament_name = serializers.CharField(source="tournament_name", read_only=True)
+    class Meta:
+        model = TournamentParticipation
+        fields = ["id", "tournament", "tournament_name", "team", "team_name",
+                  "status", "requested_at", "request_answered_at"]
+
+    def get_team_name(self, obj):
+        return getattr(obj.team, "team", str(obj.team)) #safer.
