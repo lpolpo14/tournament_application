@@ -41,7 +41,7 @@ This project is being developed for the course 'Information Systems on the Inter
 ### Security
 
 - [ ] CSP Headers
-- [ ] Team Logos Security (OWASP + Django + uuid)
+- [x] Team Logos Security (OWASP + Django + uuid)
 - [ ] CSRF Headers
 - [ ] Session Management
 - [ ] Authentication \& Authorization
