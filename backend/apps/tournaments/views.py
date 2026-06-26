@@ -22,25 +22,25 @@ class TournamentViewSet(viewsets.ModelViewSet):
     queryset = Tournament.objects.prefetch_related("teams", "participations__team").all()
     serializer_class = TournamentSerializer
 
-    @action(detail=True, methods=["post"], url_path="request-participation")
-    def request_participation(self, request, pk=None):
+    @action(detail=True, methods=["post"], url_path="request-registration")
+    def request_registration(self, request, pk=None):
         tournament = self.get_object()
 
-        if tournament.status != TournamentParticipation.Status.PENDING:
+        if tournament.status != Tournament.Status.SCHEDULED:
             return Response(
-                {"details": "Teams can only register while tournament status is pending."},
-                status=status.HTTP_400_FORBIDDEN,
+                {"detail": "Teams can only register while tournament status is Scheduled."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         team_id = request.data.get("team_id")
 
         if not team_id:
             return Response(
-                {"details": "Team ID is required."},
+                {"team_id": "This field is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        team = get_object_or_404(Team, pk=team_id) # Neat function!
+        team = get_object_or_404(Team, pk=team_id)
 
         participation, created = TournamentParticipation.objects.get_or_create(
             tournament=tournament,
@@ -50,23 +50,24 @@ class TournamentViewSet(viewsets.ModelViewSet):
 
         if not created:
             return Response(
-                {"details": "Participation is already registered."},
+                {"detail": f"This team already has a participation with status {participation.status}."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = TournamentSerializer(participation)
+        serializer = TournamentParticipationSerializer(participation)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=["post"], name="participations")
-    def participations(self, request, pk=None):
+    @action(detail=True, methods=["get"], url_path="registrations")
+    def registrations(self, request, pk=None):
         tournament = self.get_object()
 
-        queryset = tournament.participations.select_related("team").order_by("-created_at")
+        queryset = tournament.participations.select_related("team").order_by("-requested_at")
+
         participation_status = request.query_params.get("status")
         if participation_status:
             queryset = queryset.filter(status=participation_status)
 
-        serializer = TournamentSerializer(queryset, many=True)
+        serializer = TournamentParticipationSerializer(queryset, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=["post"], name="commence")
@@ -85,6 +86,8 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         tournament.status = Tournament.Status.ONGOING
+        tournament.save()
+
 
         generated_matches = []
 
@@ -101,27 +104,29 @@ class TournamentViewSet(viewsets.ModelViewSet):
             }
         )
 
-    @action(detail=True, methods=["post"], name="generate-matches")
+    @action(detail=True, methods=["post"], url_path="generate-matches")
     def generate_matches(self, request, pk=None):
         tournament = self.get_object()
 
-        if tournament.status != Tournament.Status.SCHEDULED or tournament.status != Tournament.Status.ONGOING:
+        if tournament.status not in [Tournament.Status.SCHEDULED, Tournament.Status.ONGOING]:
             return Response(
-                {"details": "Matches can only be generated for ongoing or scheduled tournmanets"},
+                {"detail": "Matches can only be generated for ongoing or scheduled tournaments."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if tournament.teams.count() < 2:
             return Response(
-                {"details": "No teams to assign matches to"},
+                {"detail": "At least two teams are required to generate matches."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         generated_matches = self._generate_round_robin_matches(tournament)
 
         return Response(
-            {"detail": "Generated matches successfully.",
-             "generated_matches": len(generated_matches),}
+            {
+                "detail": "Generated matches successfully.",
+                "generated_matches": len(generated_matches),
+            }
         )
 
     def _generate_round_robin_matches(self, tournament):
@@ -176,7 +181,7 @@ class TournamentViewSet(viewsets.ModelViewSet):
         for team in tournament.teams.all():
             standings[team.id] = {
                 'team_id': team.id,
-                "team_name": team.name,
+                "team_name": team.team_name,
                 "played_games": 0,
                 "wins": 0,
                 "losses": 0,

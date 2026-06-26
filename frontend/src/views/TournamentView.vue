@@ -8,6 +8,120 @@ const route = useRoute();
 
 const tournamentId = route.params.id;
 
+const teams = ref([]);
+const registrations = ref([]);
+const selectedTeamId = ref("");
+const isAdmin = ref(true);
+const isTeamManager = ref(true);
+
+
+async function fetchTeams() {
+  const response = await instance_api.get("/teams/");
+  teams.value = normalizeList(response.data);
+}
+
+async function fetchRegistrations() {
+  const response = await instance_api.get(`/tournaments/${tournamentId}/registrations/`);
+  registrations.value = normalizeList(response.data);
+}
+
+async function requestRegistration() {
+  loading.value = true;
+  clearMessages();
+
+  try {
+    await instance_api.post(`/tournaments/${tournamentId}/request-registration/`, {
+      team_id: selectedTeamId.value,
+    });
+
+    success.value = "Registration request submitted successfully.";
+
+    await fetchRegistrations();
+  } catch (err) {
+    error.value = extractError(err);
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function acceptRegistration(registration) {
+  loading.value = true;
+  clearMessages();
+
+  try {
+    await instance_api.post(`/tournament-registrations/${registration.id}/accept/`);
+
+    success.value = "Registration accepted.";
+
+    await Promise.all([
+      fetchTournament(),
+      fetchRegistrations(),
+      fetchStandings(),
+    ]);
+  } catch (err) {
+    error.value = extractError(err);
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function rejectRegistration(registration) {
+  loading.value = true;
+  clearMessages();
+
+  try {
+    await instance_api.post(`/tournament-registrations/${registration.id}/reject/`);
+
+    success.value = "Registration rejected.";
+
+    await fetchRegistrations();
+  } catch (err) {
+    error.value = extractError(err);
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function commenceTournament() {
+  loading.value = true;
+  clearMessages();
+
+  try {
+    const response = await instance_api.post(`/tournaments/${tournamentId}/commence/`, {
+      generate_matches: true,
+    });
+
+    success.value = `Tournament commenced. Generated ${response.data.generated_matches} matches.`;
+
+    await Promise.all([
+      fetchTournament(),
+      fetchMatches(),
+      fetchStandings(),
+    ]);
+  } catch (err) {
+    error.value = extractError(err);
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function generateMatches() {
+  loading.value = true;
+  clearMessages();
+
+  try {
+    const response = await instance_api.post(`/tournaments/${tournamentId}/generate-matches/`);
+
+    success.value = `Generated ${response.data.generated_matches} matches.`;
+
+    await fetchMatches();
+  } catch (err) {
+    error.value = extractError(err);
+  } finally {
+    loading.value = false;
+  }
+}
+
 const tournament = ref(null);
 const matches = ref([]);
 const standings = ref([]);
@@ -92,9 +206,11 @@ async function loadPage() {
 
   try {
     await Promise.all([
-      fetchTournament(),
-      fetchMatches(),
-      fetchStandings(),
+    fetchTournament(),
+    fetchMatches(),
+    fetchStandings(),
+    fetchTeams(),
+    fetchRegistrations(),
     ]);
   } catch (err) {
     error.value = extractError(err);
@@ -208,7 +324,153 @@ onMounted(loadPage);
             </p>
           </article>
         </section>
+        <section
+  v-if="tournament.status === 'Scheduled'"
+  class="rounded-2xl bg-white p-6 shadow"
+>
+  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">
+        Tournament Registration
+      </h2>
 
+      <p class="mt-1 text-sm text-gray-600">
+        Team managers can request participation before the tournament begins.
+      </p>
+    </div>
+  </div>
+
+  <form
+    v-if="isTeamManager"
+    class="mt-4 grid gap-3 md:grid-cols-3"
+    @submit.prevent="requestRegistration"
+  >
+    <div class="md:col-span-2">
+      <label class="block text-sm font-medium text-gray-700">
+        Select Team
+      </label>
+
+      <select
+        v-model="selectedTeamId"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+        required
+      >
+        <option value="" disabled>
+          Choose a team
+        </option>
+
+        <option
+          v-for="team in teams"
+          :key="team.id"
+          :value="team.id"
+        >
+          {{ team.team_name }}
+        </option>
+      </select>
+    </div>
+
+    <div class="flex items-end">
+      <button
+        type="submit"
+        class="w-full rounded-lg bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+        :disabled="loading"
+      >
+        Request Registration
+      </button>
+    </div>
+  </form>
+</section>
+
+        <section
+  v-if="isAdmin"
+  class="rounded-2xl bg-white p-6 shadow"
+>
+  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">
+        Registration Requests
+      </h2>
+
+      <p class="mt-1 text-sm text-gray-600">
+        Admin can accept or reject teams before commencing the tournament.
+      </p>
+    </div>
+
+    <button
+      class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black disabled:opacity-50"
+      :disabled="loading"
+      @click="fetchRegistrations"
+    >
+      Refresh Requests
+    </button>
+  </div>
+
+  <div
+    v-if="registrations.length === 0"
+    class="mt-4 rounded-xl border border-dashed border-gray-300 p-6 text-center text-gray-600"
+  >
+    No registration requests yet.
+  </div>
+
+  <div v-else class="mt-4 overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Team</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Requested At</th>
+          <th class="px-4 py-3 text-right font-semibold text-gray-700">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-gray-200 bg-white">
+        <tr
+          v-for="registration in registrations"
+          :key="registration.id"
+        >
+          <td class="px-4 py-3 font-medium text-gray-900">
+            {{ registration.team_name }}
+          </td>
+
+          <td class="px-4 py-3">
+            {{ registration.status }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-600">
+            {{ formatDateTime(registration.requested_at) }}
+          </td>
+
+          <td class="px-4 py-3 text-right">
+            <div
+              v-if="registration.status === 'Pending'"
+              class="flex justify-end gap-2"
+            >
+              <button
+                class="rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                :disabled="loading"
+                @click="acceptRegistration(registration)"
+              >
+                Accept
+              </button>
+
+              <button
+                class="rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                :disabled="loading"
+                @click="rejectRegistration(registration)"
+              >
+                Reject
+              </button>
+            </div>
+
+            <span v-else class="text-gray-500">
+              Decided
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
         <section class="rounded-2xl bg-white p-6 shadow">
           <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
@@ -244,7 +506,7 @@ onMounted(loadPage);
               class="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-800"
             >
               <template v-if="typeof team === 'object'">
-                {{ team.name }}
+                {{ team.team_name }}
               </template>
 
               <template v-else>
@@ -288,6 +550,50 @@ onMounted(loadPage);
           :standings="standings"
           />
         </section>
+
+        <section
+  v-if="isAdmin"
+  class="rounded-2xl bg-white p-6 shadow"
+>
+  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">
+        Admin Controls
+      </h2>
+
+      <p class="mt-1 text-sm text-gray-600">
+        Commence the tournament and generate matches for accepted teams.
+      </p>
+    </div>
+
+    <div class="flex flex-col gap-2 sm:flex-row">
+      <button
+        v-if="tournament.status === 'Scheduled'"
+        class="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50"
+        :disabled="loading || !tournament.teams || tournament.teams.length < 2"
+        @click="commenceTournament"
+      >
+        Commence & Generate Matches
+      </button>
+
+      <button
+        v-if="tournament.status === 'Ongoing'"
+        class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black disabled:opacity-50"
+        :disabled="loading"
+        @click="generateMatches"
+      >
+        Generate Missing Matches
+      </button>
+    </div>
+  </div>
+
+  <p
+    v-if="!tournament.teams || tournament.teams.length < 2"
+    class="mt-3 text-sm text-red-700"
+  >
+    At least two accepted teams are required before commencing the tournament.
+  </p>
+</section>
 
         <section class="rounded-2xl bg-white p-6 shadow">
           <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

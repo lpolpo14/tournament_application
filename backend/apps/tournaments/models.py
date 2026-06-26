@@ -1,4 +1,4 @@
-from datetime import timezone
+from django.utils import timezone
 
 from django.db import models
 from django.db.models import Q, F
@@ -55,13 +55,13 @@ class TournamentParticipation(models.Model):
         self.status = self.Status.ACCEPTED
         self.request_answered_at= timezone.now()
         self.save()
-        self.tournaments.teams.add(self.team)
+        self.tournament.teams.add(self.team)
 
     def reject(self):
         self.status = self.Status.REJECTED
         self.request_answered_at = timezone.now()
         self.save()
-        self.tournaments.teams.remove(self.team) # Just in case
+        self.tournament.teams.remove(self.team) # Just in case
 
     def __str__(self):
         return f'Team {self.team} participation status for tournament {self.tournament.name}: {self.status}'

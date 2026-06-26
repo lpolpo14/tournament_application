@@ -39,13 +39,13 @@ async function createTournament() {
 
   try {
     const payload = {
-      name: form.value.name,
-      sport: form.value.sport,
-      location: form.value.location,
-      start_date: toApiDateTime(form.value.start_date),
-      end_date: toApiDateTime(form.value.end_date),
-      status: form.value.status,
-    };
+    name: form.value.name,
+    sport: form.value.sport,
+    location: form.value.location,
+    start_date: toApiDateTime(form.value.start_date),
+    end_date: toApiDateTime(form.value.end_date),
+    status: "Scheduled",
+  };
 
     const response = await instance_api.post("/tournaments/", payload);
 

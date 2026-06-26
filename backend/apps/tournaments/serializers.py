@@ -19,18 +19,18 @@ class TournamentSerializer(serializers.ModelSerializer):
                   "location", "start_date", "end_date", "status", "pending_registration_count"]
 
     def get_pending_registration_count(self, obj):
-        return obj.registrations.filter(
+        return obj.participations.filter(
             status=TournamentParticipation.Status.PENDING,
         ).count()
 
 
 class TournamentParticipationSerializer(serializers.ModelSerializer):
     team_name = serializers.SerializerMethodField()
-    tournament_name = serializers.CharField(source="tournament_name", read_only=True)
+    tournament_name = serializers.CharField(source="tournament.name", read_only=True)
     class Meta:
         model = TournamentParticipation
         fields = ["id", "tournament", "tournament_name", "team", "team_name",
                   "status", "requested_at", "request_answered_at"]
 
     def get_team_name(self, obj):
-        return getattr(obj.team, "team", str(obj.team)) #safer.
+        return getattr(obj.team, "team_name", str(obj.team)) #safer.
