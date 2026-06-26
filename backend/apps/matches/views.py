@@ -23,6 +23,20 @@ class MatchViewSet(viewsets.ModelViewSet):
         return MatchPatchSerializer
 
     def get_queryset(self):
+        queryset = Match.objects.select_related(
+            "tournament",
+            "team1",
+            "team2",
+        ).all()
+
+        tournament_id = self.request.query_params.get("tournament")
+
+        if tournament_id:
+            queryset = queryset.filter(tournament_id=tournament_id)
+
+        return queryset
+    """
+    def get_queryset(self):
         queryset = super().get_queryset()
 
         tournament_id = self.request.query_params.get("tournament")
@@ -37,6 +51,7 @@ class MatchViewSet(viewsets.ModelViewSet):
             ) # This is a bit obtuse. Fix it soon.
 
         return queryset
+    """
 
     @action(detail=True, methods=["patch"], url_path="submit-score")
     def submit_score(self, request, pk=None):
