@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { playerApi, teamApi } from '@/services/api.js'
+import StandingsTeamTable from "@/components/helpers/StandingsTeamTable.vue";
 
 const route = useRoute()
 
@@ -24,6 +25,12 @@ const teamMatches = ref({
   future_matches: [],
   past_matches: [],
 })
+
+const tournamentStandings = ref([])
+const tournamentStandingsLoading = ref(false)
+const tournamentStandingsError = ref('')
+
+
 
 const matchesLoading = ref(false)
 const matchesError = ref('')
@@ -60,6 +67,42 @@ function getOpponentName(match) {
   }
 
   return match.team1_name
+}
+
+async function loadTournamentStandings() {
+  tournamentStandingsLoading.value = true
+  tournamentStandingsError.value = ''
+
+  try {
+    const response = await teamApi.getTournamentStandings(route.params.id)
+    tournamentStandings.value = response.data
+  } catch (err) {
+    tournamentStandingsError.value = 'Could not load tournament standings.'
+  } finally {
+    tournamentStandingsLoading.value = false
+  }
+}
+
+function formatTournamentDate(value) {
+  if (!value) {
+    return 'Not set'
+  }
+
+  return new Date(value).toLocaleDateString()
+}
+
+function getGoalDifference(standing) {
+  return standing.goals_scored - standing.goals_conceded
+}
+
+function getGoalDifferenceLabel(standing) {
+  const goalDifference = getGoalDifference(standing)
+
+  if (goalDifference > 0) {
+    return `+${goalDifference}`
+  }
+
+  return String(goalDifference)
 }
 
 function getScoreText(match) {
@@ -344,6 +387,7 @@ onMounted(async () => {
   await loadTeam()
   await loadAvailablePlayers()
   await loadTeamMatches()
+  await loadTournamentStandings()
 })
 </script>
 
@@ -673,6 +717,153 @@ onMounted(async () => {
       Click “View Past Matches” to show this team’s match history.
     </p>
   </section>
+</section>
+          <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-900">
+        Tournament Leaderboards
+      </h2>
+
+      <p class="mt-1 text-sm text-gray-600">
+        Current position of this team in every tournament it participates in.
+      </p>
+    </div>
+
+    <button
+      @click="loadTournamentStandings"
+      class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+    >
+      Refresh Standings
+    </button>
+  </div>
+
+  <p
+    v-if="tournamentStandingsLoading"
+    class="mt-6 text-gray-600"
+  >
+    Loading tournament standings...
+  </p>
+
+  <p
+    v-else-if="tournamentStandingsError"
+    class="mt-6 rounded-xl bg-red-50 p-3 text-sm text-red-700"
+  >
+    {{ tournamentStandingsError }}
+  </p>
+
+  <p
+    v-else-if="tournamentStandings.length === 0"
+    class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
+  >
+    This team does not participate in any tournament yet.
+  </p>
+
+  <div
+    v-else
+    class="mt-6 space-y-6"
+  >
+    <article
+      v-for="item in tournamentStandings"
+      :key="item.tournament_id"
+      class="rounded-2xl border border-gray-200 p-5"
+    >
+      <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h3 class="text-xl font-bold text-gray-900">
+            {{ item.tournament_name }}
+          </h3>
+
+          <p class="mt-1 text-sm text-gray-600">
+            {{ item.sport }} · {{ item.location }}
+          </p>
+
+          <p class="mt-1 text-sm text-gray-600">
+            {{ formatTournamentDate(item.start_date) }}
+            -
+            {{ formatTournamentDate(item.end_date) }}
+          </p>
+        </div>
+
+        <span class="w-fit rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+          {{ item.status }}
+        </span>
+      </div>
+
+      <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div class="rounded-xl bg-gray-50 p-4 text-center">
+          <p class="text-xs font-semibold uppercase text-gray-500">
+            Position
+          </p>
+
+          <p class="mt-1 text-2xl font-bold text-gray-900">
+            #{{ item.team_standing.position }}
+          </p>
+        </div>
+
+        <div class="rounded-xl bg-gray-50 p-4 text-center">
+          <p class="text-xs font-semibold uppercase text-gray-500">
+            Points
+          </p>
+
+          <p class="mt-1 text-2xl font-bold text-gray-900">
+            {{ item.team_standing.points }}
+          </p>
+        </div>
+
+        <div class="rounded-xl bg-gray-50 p-4 text-center">
+          <p class="text-xs font-semibold uppercase text-gray-500">
+            Played
+          </p>
+
+          <p class="mt-1 text-2xl font-bold text-gray-900">
+            {{ item.team_standing.played_games }}
+          </p>
+        </div>
+
+        <div class="rounded-xl bg-gray-50 p-4 text-center">
+          <p class="text-xs font-semibold uppercase text-gray-500">
+            Record
+          </p>
+
+          <p class="mt-1 text-lg font-bold text-gray-900">
+            {{ item.team_standing.wins }}W
+            {{ item.team_standing.draws }}D
+            {{ item.team_standing.losses }}L
+          </p>
+        </div>
+
+        <div class="rounded-xl bg-gray-50 p-4 text-center">
+          <p class="text-xs font-semibold uppercase text-gray-500">
+            Goal Difference
+          </p>
+
+          <p class="mt-1 text-2xl font-bold text-gray-900">
+            {{ getGoalDifferenceLabel(item.team_standing) }}
+          </p>
+        </div>
+      </div>
+
+      <details class="mt-5">
+        <summary class="cursor-pointer text-sm font-semibold text-green-700 hover:text-green-800">
+          View full leaderboard
+        </summary>
+
+        <StandingsTeamTable
+          class="mt-4"
+          :standings="item.standings"
+          :highlight-team-id="team.id"
+        />
+      </details>
+
+      <RouterLink
+        :to="`/tournament/${item.tournament_id}`"
+        class="mt-4 inline-block text-sm font-semibold text-green-700 hover:text-green-800"
+      >
+        Open tournament page
+      </RouterLink>
+    </article>
+  </div>
 </section>
         <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 class="text-2xl font-bold text-gray-900">

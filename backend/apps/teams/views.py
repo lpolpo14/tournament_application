@@ -10,6 +10,8 @@ from .serializers import TeamSerializer, PlayerSerializer, addPlayerToTeamSerial
 from .models import Team, Player, TeamMember
 from ..matches.models import Match
 from ..matches.serializers import MatchReadSerializer
+from ..tournaments.services import calculate_tournament_standings
+from ..tournaments.models import Tournament
 
 # Create your views here.
 
@@ -89,6 +91,41 @@ class TeamViewSet(viewsets.ModelViewSet):
             "future_matches": MatchReadSerializer(future_matches, many=True).data,
             "past_matches": MatchReadSerializer(past_matches, many=True).data,
         })
+
+    @action(detail=True, methods=["get"], url_path="tournament-standings")
+    def tournament_standings(self, request, pk=None):
+        team = self.get_object()
+
+        tournaments = (Tournament.objects.prefetch_related("teams").filter(teams=team)
+            .order_by("-start_date")
+        )
+        result = []
+        for tournament in tournaments:
+            standings = calculate_tournament_standings(tournament)
+
+            team_standing = next(
+                (   standing
+                    for standing in standings
+                    if standing["team_id"] == team.id
+                ),
+                None,
+            )
+            if not team_standing:
+                continue
+
+            result.append({
+                "tournament_id": tournament.id,
+                "tournament_name": tournament.name,
+                "sport": tournament.sport,
+                "location": tournament.location,
+                "status": tournament.status,
+                "start_date": tournament.start_date,
+                "end_date": tournament.end_date,
+                "team_standing": team_standing,
+                "standings": standings,
+            })
+
+        return Response(result)
 
 class PlayerViewSet(viewsets.ModelViewSet):
     serializer_class = PlayerSerializer

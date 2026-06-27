@@ -19,9 +19,9 @@ This project is being developed for the course 'Information Systems on the Inter
 - [x] View all tournaments options
 - [x] Create/Add a match option
 - [x] View all matches of a tournament options
-- [ ] View a team's past matches
+- [x] View a team's past matches
 - [x] Submission of final score
-- [ ] Add player details as well as granted cards (yellow/red cards etc)
+- [x] Add player details as well as granted cards (yellow/red cards etc)
 - [x] Create a tournament dashboard with team ordering based on score
 - [x] Add team logos
 - [x] Add random generation of matches within a tournament

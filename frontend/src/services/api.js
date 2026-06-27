@@ -49,4 +49,7 @@ export const teamApi = {
   getMatches(teamId, params = {}) {
     return instance_api.get(`/teams/${teamId}/matches/`, { params })
   },
+  getTournamentStandings(teamId) {
+  return instance_api.get(`/teams/${teamId}/tournament-standings/`)
+  },
 }
