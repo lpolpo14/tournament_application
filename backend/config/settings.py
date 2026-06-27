@@ -30,7 +30,7 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
 
 VITE_API_BASE_URL=os.environ.get("VITE_API_BASE_URL")
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "")
 
 
 # Application definition
