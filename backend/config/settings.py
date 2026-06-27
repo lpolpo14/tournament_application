@@ -33,11 +33,14 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY","django-insecure-(uhug$6-cpw=s0@@9zen05w=2ateqm@c6u9o3lyvgw^t5dk8*0'")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
 
-VITE_API_BASE_URL=os.environ.get("VITE_API_BASE_URL")
+# Use this when deploying
+# DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
+DEBUG = True
 
-ALLOWED_HOSTS = [os.environ.get("DJANGO_ALLOWED_HOSTS", "")]
+# Uncomment those when deploying
+#VITE_API_BASE_URL=os.environ.get("VITE_API_BASE_URL")
+#ALLOWED_HOSTS = [os.environ.get("DJANGO_ALLOWED_HOSTS", "")]
 
 
 # Application definition
