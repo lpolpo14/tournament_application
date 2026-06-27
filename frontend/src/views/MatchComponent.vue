@@ -9,7 +9,7 @@ const matchId = route.params.id;
 // Temporary role placeholder.
 // Change to "referee" to test score editing.
 // Later this should come from real authentication.
-const currentRole = ref("visitor");
+const currentRole = ref("referee");
 
 const isReferee = computed(() => currentRole.value === "referee");
 
@@ -22,6 +22,90 @@ const scoreForm = ref({
   team1_score: "",
   team2_score: "",
 });
+
+function editPlayerStatistic(entry) {
+  const targetForm =
+    Number(entry.team) === Number(match.value.team1)
+      ? team1StatisticForm
+      : team2StatisticForm;
+
+  targetForm.value = {
+    player: entry.player,
+    goals: entry.goals,
+    fouls: entry.fouls,
+    yellow_cards: entry.yellow_cards,
+    red_cards: entry.red_cards,
+  };
+}
+
+
+const matchPlayers = ref({
+  team1: {
+    id: null,
+    team_name: "",
+    players: [],
+  },
+  team2: {
+    id: null,
+    team_name: "",
+    players: [],
+  },
+});
+
+function emptyStatisticForm() {
+  return {
+    player: "",
+    goals: 0,
+    fouls: 0,
+    yellow_cards: 0,
+    red_cards: 0,
+  };
+}
+
+const team1StatisticForm = ref(emptyStatisticForm());
+const team2StatisticForm = ref(emptyStatisticForm());
+
+const team1Statistics = computed(() => {
+  if (!match.value) {
+    return [];
+  }
+
+  return playerStatistics.value.filter((entry) => {
+    return Number(entry.team) === Number(match.value.team1);
+  });
+});
+
+const team2Statistics = computed(() => {
+  if (!match.value) {
+    return [];
+  }
+
+  return playerStatistics.value.filter((entry) => {
+    return Number(entry.team) === Number(match.value.team2);
+  });
+});
+
+async function fetchMatchPlayers() {
+  const response = await instance_api.get(`/matches/${matchId}/players/`);
+  matchPlayers.value = response.data;
+}
+
+const playerStatistics = ref([]);
+
+
+function normalizeList(data) {
+  return Array.isArray(data) ? data : data.results || [];
+}
+
+async function fetchPlayerStatistics() {
+  const response = await instance_api.get("/player-match-statistics/", {
+    params: {
+      match: matchId,
+    },
+  });
+
+  playerStatistics.value = normalizeList(response.data);
+}
 
 function clearMessages() {
   error.value = "";
@@ -115,7 +199,80 @@ async function submitScore() {
   }
 }
 
-onMounted(fetchMatch);
+
+async function savePlayerStatisticsForTeam(side) {
+  loading.value = true;
+  clearMessages();
+
+  try {
+    const form =
+      side === "team1"
+        ? team1StatisticForm.value
+        : team2StatisticForm.value;
+
+    const teamId =
+      side === "team1"
+        ? match.value.team1
+        : match.value.team2;
+
+    const payload = {
+      match: matchId,
+      player: form.player,
+      team: teamId,
+      goals: Number(form.goals),
+      fouls: Number(form.fouls),
+      yellow_cards: Number(form.yellow_cards),
+      red_cards: Number(form.red_cards),
+      extra_statistics: {},
+    };
+
+    const existingStatistic = playerStatistics.value.find((entry) => {
+      return Number(entry.player) === Number(payload.player);
+    });
+
+    if (existingStatistic) {
+      await instance_api.patch(
+        `/player-match-statistics/${existingStatistic.id}/`,
+        payload
+      );
+
+      success.value = "Player statistics updated successfully.";
+    } else {
+      await instance_api.post("/player-match-statistics/", payload);
+
+      success.value = "Player statistics saved successfully.";
+    }
+
+    if (side === "team1") {
+      team1StatisticForm.value = emptyStatisticForm();
+    } else {
+      team2StatisticForm.value = emptyStatisticForm();
+    }
+
+    await fetchPlayerStatistics();
+  } catch (err) {
+    error.value = extractError(err);
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(async () => {
+  loading.value = true;
+  clearMessages();
+
+  try {
+    await Promise.all([
+      fetchMatch(),
+      fetchMatchPlayers(),
+      fetchPlayerStatistics(),
+    ]);
+  } catch (err) {
+    error.value = extractError(err);
+  } finally {
+    loading.value = false;
+  }
+});
 </script>
 
 <template>
@@ -276,6 +433,342 @@ onMounted(fetchMatch);
         </section>
 
         <section
+  v-if="isReferee"
+  class="rounded-2xl bg-white p-6 shadow"
+>
+  <h2 class="text-xl font-bold text-gray-900">
+    {{ teamLabel("team1") }} Player Statistics
+  </h2>
+
+  <p class="mt-1 text-sm text-gray-600">
+    Add or edit statistics only for players of {{ teamLabel("team1") }}.
+  </p>
+
+  <form
+    class="mt-5 grid gap-4 md:grid-cols-2"
+    @submit.prevent="savePlayerStatisticsForTeam('team1')"
+  >
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Player
+      </label>
+
+      <select
+        v-model="team1StatisticForm.player"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+        required
+      >
+        <option value="" disabled>
+          Select player
+        </option>
+
+        <option
+          v-for="player in matchPlayers.team1.players"
+          :key="player.player_id"
+          :value="player.player_id"
+        >
+          #{{ player.shirt_number }} - {{ player.player_full_name }}
+        </option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Goals
+      </label>
+
+      <input
+        v-model="team1StatisticForm.goals"
+        type="number"
+        min="0"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+      />
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Fouls
+      </label>
+
+      <input
+        v-model="team1StatisticForm.fouls"
+        type="number"
+        min="0"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+      />
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Yellow Cards
+      </label>
+
+      <input
+        v-model="team1StatisticForm.yellow_cards"
+        type="number"
+        min="0"
+        max="2"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+      />
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Red Cards
+      </label>
+
+      <input
+        v-model="team1StatisticForm.red_cards"
+        type="number"
+        min="0"
+        max="1"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+      />
+    </div>
+
+    <div class="flex items-end">
+      <button
+        type="submit"
+        class="w-full rounded-lg bg-purple-600 px-5 py-3 font-semibold text-white hover:bg-purple-700 disabled:opacity-50"
+        :disabled="loading"
+      >
+        Save {{ teamLabel("team1") }} Statistics
+      </button>
+    </div>
+  </form>
+
+  <div
+    v-if="team1Statistics.length === 0"
+    class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-center text-gray-600"
+  >
+    No statistics recorded for {{ teamLabel("team1") }} yet.
+  </div>
+
+  <div v-else class="mt-6 overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Player</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Shirt</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Goals</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Fouls</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Yellow</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Red</th>
+          <th class="px-4 py-3 text-right font-semibold text-gray-700">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-gray-200 bg-white">
+        <tr
+          v-for="entry in team1Statistics"
+          :key="entry.id"
+        >
+          <td class="px-4 py-3 font-medium text-gray-900">
+            {{ entry.player_full_name }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-700">
+            {{ entry.shirt_number ?? "-" }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-700">
+            {{ entry.goals }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-700">
+            {{ entry.fouls }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-700">
+            {{ entry.yellow_cards }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-700">
+            {{ entry.red_cards }}
+          </td>
+
+          <td class="px-4 py-3 text-right">
+  <button
+    class="rounded-lg bg-gray-900 px-3 py-2 text-xs font-semibold text-white hover:bg-black"
+    @click="editPlayerStatistic(entry)"
+  >
+    Edit
+  </button>
+</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+        <section
+  v-if="isReferee"
+  class="rounded-2xl bg-white p-6 shadow"
+>
+  <h2 class="text-xl font-bold text-gray-900">
+    {{ teamLabel("team2") }} Player Statistics
+  </h2>
+
+  <p class="mt-1 text-sm text-gray-600">
+    Add or edit statistics only for players of {{ teamLabel("team2") }}.
+  </p>
+
+  <form
+    class="mt-5 grid gap-4 md:grid-cols-2"
+    @submit.prevent="savePlayerStatisticsForTeam('team2')"
+  >
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Player
+      </label>
+
+      <select
+        v-model="team2StatisticForm.player"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+        required
+      >
+        <option value="" disabled>
+          Select player
+        </option>
+
+        <option
+          v-for="player in matchPlayers.team2.players"
+          :key="player.player_id"
+          :value="player.player_id"
+        >
+          #{{ player.shirt_number }} - {{ player.player_full_name }}
+        </option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Goals
+      </label>
+
+      <input
+        v-model="team2StatisticForm.goals"
+        type="number"
+        min="0"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+      />
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Fouls
+      </label>
+
+      <input
+        v-model="team2StatisticForm.fouls"
+        type="number"
+        min="0"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+      />
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Yellow Cards
+      </label>
+
+      <input
+        v-model="team2StatisticForm.yellow_cards"
+        type="number"
+        min="0"
+        max="2"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+      />
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Red Cards
+      </label>
+
+      <input
+        v-model="team2StatisticForm.red_cards"
+        type="number"
+        min="0"
+        max="1"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+      />
+    </div>
+
+    <div class="flex items-end">
+      <button
+        type="submit"
+        class="w-full rounded-lg bg-purple-600 px-5 py-3 font-semibold text-white hover:bg-purple-700 disabled:opacity-50"
+        :disabled="loading"
+      >
+        Save {{ teamLabel("team2") }} Statistics
+      </button>
+    </div>
+  </form>
+
+  <div
+    v-if="team2Statistics.length === 0"
+    class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-center text-gray-600"
+  >
+    No statistics recorded for {{ teamLabel("team2") }} yet.
+  </div>
+
+  <div v-else class="mt-6 overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Player</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Shirt</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Goals</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Fouls</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Yellow</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Red</th>
+          <th class="px-4 py-3 text-right font-semibold text-gray-700">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-gray-200 bg-white">
+        <tr
+          v-for="entry in team2Statistics"
+          :key="entry.id"
+        >
+          <td class="px-4 py-3 font-medium text-gray-900">
+            {{ entry.player_full_name }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-700">
+            {{ entry.shirt_number ?? "-" }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-700">
+            {{ entry.goals }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-700">
+            {{ entry.fouls }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-700">
+            {{ entry.yellow_cards }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-700">
+            {{ entry.red_cards }}
+          </td>
+          <td class="px-4 py-3 text-right">
+  <button
+    class="rounded-lg bg-gray-900 px-3 py-2 text-xs font-semibold text-white hover:bg-black"
+    @click="editPlayerStatistic(entry)"
+  >
+    Edit
+  </button>
+</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+        <section
           v-else
           class="rounded-2xl bg-white p-6 shadow"
         >
@@ -311,6 +804,73 @@ onMounted(fetchMatch);
             </article>
           </div>
         </section>
+        <section class="rounded-2xl bg-white p-6 shadow">
+  <h2 class="text-xl font-bold text-gray-900">
+    Player Statistics
+  </h2>
+
+  <p class="mt-1 text-sm text-gray-600">
+    Recorded player statistics for this match.
+  </p>
+
+  <div
+    v-if="playerStatistics.length === 0"
+    class="mt-4 rounded-xl border border-dashed border-gray-300 p-6 text-center text-gray-600"
+  >
+    No player statistics have been recorded yet.
+  </div>
+
+  <div v-else class="mt-5 overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Player</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Team</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Shirt</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Goals</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Fouls</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Yellow</th>
+          <th class="px-4 py-3 text-left font-semibold text-gray-700">Red</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-gray-200 bg-white">
+        <tr
+          v-for="entry in playerStatistics"
+          :key="entry.id"
+        >
+          <td class="px-4 py-3 font-medium text-gray-900">
+            {{ entry.player_full_name }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-700">
+            {{ entry.team_name }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-700">
+            {{ entry.shirt_number ?? "-" }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-700">
+            {{ entry.goals }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-700">
+            {{ entry.fouls }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-700">
+            {{ entry.yellow_cards }}
+          </td>
+
+          <td class="px-4 py-3 text-gray-700">
+            {{ entry.red_cards }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
       </template>
     </div>
   </main>

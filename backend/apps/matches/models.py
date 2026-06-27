@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from ..teams.models import TeamMember
 
 
 class Match(models.Model):
@@ -39,3 +40,61 @@ class Stadium(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.city}"
+
+
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
+
+class PlayerMatchStatistics(models.Model):
+    """
+    Stores statistics for one player in one specific match.
+    This model supports the common statistics needed by the assignment,
+    while extra_statistics allows future sport-specific extensions.
+    """
+
+    match = models.ForeignKey(
+        "matches.Match",on_delete=models.CASCADE,related_name="player_statistics",
+    )
+
+    player = models.ForeignKey(
+        "teams.Player",on_delete=models.CASCADE,related_name="match_statistics",
+    )
+
+    team = models.ForeignKey(
+        "teams.Team",on_delete=models.CASCADE,related_name="player_match_statistics",
+    )
+
+    goals = models.PositiveIntegerField(default=0)
+    fouls = models.PositiveIntegerField(default=0)
+
+    # Neat Validator!
+    yellow_cards = models.PositiveIntegerField(default=0,validators=[MaxValueValidator(2)], )
+    red_cards = models.PositiveIntegerField(default=0,validators=[MaxValueValidator(1)],)
+    extra_statistics = models.JSONField(default=dict, blank=True)  #Json is useful here.
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def clean(self):
+        if self.team not in [self.match.team1, self.match.team2]:
+            raise ValidationError("The selected team does not participate in this match.")
+
+        player_belongs_to_team = TeamMember.objects.filter(
+            team=self.team,
+            player=self.player,
+        ).exists()
+
+        if not player_belongs_to_team:
+            raise ValidationError("The selected player does not belong to the selected team.")
+
+    def __str__(self):
+        return f"{self.player} statistics for {self.match}"
+
+    class Meta:
+        ordering = ["match", "team__team_name", "player__surname"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["match", "player"],
+                name="unique_player_statistics_per_match",
+            )
+        ]

@@ -8,6 +8,7 @@ from .serializers import MatchPatchSerializer
 from ..matches.serializers import (MatchReadSerializer, MatchCreateSerializer,
                                    MatchPatchSerializer, StadiumSerializer)
 from ..matches.models import Match, Stadium
+from ..teams.models import TeamMember
 
 # Create your views here.
 
@@ -36,23 +37,43 @@ class MatchViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(tournament_id=tournament_id)
 
         return queryset
-    """
-    def get_queryset(self):
-        queryset = super().get_queryset()
 
-        tournament_id = self.request.query_params.get("tournament")
-        team_id = self.request.query_params.get("team")
+    @action(detail=True, methods=["get"], url_path="players")
+    def players(self, request, pk=None):
+        match = self.get_object()
 
-        if tournament_id:
-            queryset = queryset.filter(tournament_id=tournament_id)
+        def serialize_members(team):
+            members = (TeamMember.objects.select_related("player")
+                       .filter(team=team).order_by("shirt_number")
+            )
 
-        if team_id:
-            queryset = queryset.filter(
-                Q(team1_id=team_id) | Q(team2_id=team_id)
-            ) # This is a bit obtuse. Fix it soon.
+            return [
+                {
+                    "team_member_id": member.id,
+                    "player_id": member.player.id,
+                    "player_name": member.player.name,
+                    "player_surname": member.player.surname,
+                    "player_full_name": f"{member.player.name} {member.player.surname}",
+                    "shirt_number": member.shirt_number,
+                    "position": member.player.position,
+                }
+                for member in members
+            ]
 
-        return queryset
-    """
+        return Response(
+            {
+                "team1": {
+                    "id": match.team1.id,
+                    "team_name": match.team1.team_name,
+                    "players": serialize_members(match.team1),
+                },
+                "team2": {
+                    "id": match.team2.id,
+                    "team_name": match.team2.team_name,
+                    "players": serialize_members(match.team2),
+                },
+            }
+        )
 
     @action(detail=True, methods=["patch"], url_path="submit-score")
     def submit_score(self, request, pk=None):
@@ -69,3 +90,32 @@ class MatchViewSet(viewsets.ModelViewSet):
 class StadiumViewSet(viewsets.ModelViewSet):
     queryset = Stadium.objects.all().order_by("name")
     serializer_class = StadiumSerializer
+
+from ..matches.models import Match, Stadium, PlayerMatchStatistics
+from ..matches.serializers import (
+    MatchReadSerializer,
+    MatchCreateSerializer,
+    MatchPatchSerializer,
+    StadiumSerializer,
+    PlayerMatchStatisticsSerializer,
+)
+
+class PlayerMatchStatisticsViewSet(viewsets.ModelViewSet):
+    queryset = PlayerMatchStatistics.objects.select_related(
+        "match","player","team","match__team1","match__team2",
+    ).all()
+    serializer_class = PlayerMatchStatisticsSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        match_id = self.request.query_params.get("match")
+        team_id = self.request.query_params.get("team")
+        player_id = self.request.query_params.get("player")
+
+        if match_id:
+            queryset = queryset.filter(match_id=match_id)
+        if team_id:
+            queryset = queryset.filter(team_id=team_id)
+        if player_id:
+            queryset = queryset.filter(player_id=player_id)
+        return queryset

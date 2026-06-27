@@ -1,12 +1,14 @@
 from rest_framework import serializers
 
-from ..matches.models import Match, Stadium
+from ..matches.models import Match, Stadium, PlayerMatchStatistics
+from ..teams.models import TeamMember
 
 
 class MatchReadSerializer(serializers.ModelSerializer):
     team1_name = serializers.CharField(source="team1.team_name", read_only=True)
     team2_name = serializers.CharField(source="team2.team_name", read_only=True)
     tournament_name = serializers.CharField(source="tournament.name", read_only=True)
+    player_statistics_count = serializers.IntegerField(source="player_statistics.count",read_only=True,)
 
     stadium_name = serializers.CharField(source="stadium.name", read_only=True)
     stadium_city = serializers.CharField(source="stadium.city", read_only=True)
@@ -20,6 +22,7 @@ class MatchReadSerializer(serializers.ModelSerializer):
             "team1",
             "team1_name",
             "team2",
+            "player_statistics_count",
             "stadium",
             "stadium_name",
             "stadium_city",
@@ -94,3 +97,59 @@ class StadiumSerializer(serializers.ModelSerializer):
             "city",
             "address",
         ]
+
+class PlayerMatchStatisticsSerializer(serializers.ModelSerializer):
+    player_full_name = serializers.SerializerMethodField()
+    team_name = serializers.CharField(source="team.team_name", read_only=True)
+    shirt_number = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PlayerMatchStatistics
+        fields = [
+            "id", "match", "player", "player_full_name", "team", "team_name","shirt_number",
+            "goals", "fouls", "yellow_cards", "red_cards", "extra_statistics", "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [ "id", "player_full_name", "team_name", "shirt_number", "created_at",
+            "updated_at", ]
+
+    def get_player_full_name(self, obj):
+        return f"{obj.player.name} {obj.player.surname}"
+
+    def get_shirt_number(self, obj):
+        membership = TeamMember.objects.filter(
+            team=obj.team,
+            player=obj.player,
+        ).first()
+
+        if not membership:
+            return None
+
+        return membership.shirt_number
+
+    def validate(self, attrs):
+        match = attrs.get("match", self.instance.match if self.instance else None)
+        team = attrs.get("team", self.instance.team if self.instance else None)
+        player = attrs.get("player", self.instance.player if self.instance else None)
+
+        if not match:
+            raise serializers.ValidationError("Match is required.")
+
+        if not team:
+            raise serializers.ValidationError("Team is required.")
+
+        if not player:
+            raise serializers.ValidationError("Player is required.")
+
+        if team not in [match.team1, match.team2]:
+            raise serializers.ValidationError(
+                "The selected team does not participate in this match."
+            )
+
+        if not TeamMember.objects.filter(team=team, player=player).exists():
+            raise serializers.ValidationError(
+                "The selected player does not belong to the selected team."
+            )
+
+        return attrs
