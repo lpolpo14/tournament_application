@@ -8,10 +8,11 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 
 from .serializers import TeamSerializer, PlayerSerializer, addPlayerToTeamSerializer, TeamMemberSerializer
 from .models import Team, Player, TeamMember
-from ..matches.models import Match
+from ..matches.models import Match, PlayerMatchStatistics
 from ..matches.serializers import MatchReadSerializer
 from ..tournaments.services import calculate_tournament_standings
 from ..tournaments.models import Tournament
+
 
 # Create your views here.
 
@@ -132,3 +133,90 @@ class PlayerViewSet(viewsets.ModelViewSet):
     queryset = Player.objects.all()
     search_fields = ["name", "surname", "position"]
     ordering_fields = ["name", "surname", "main_shirt_number", "created_at"]
+
+    @action(detail=True, methods=["get"], url_path="statistics")
+    def statistics(self, request, pk=None):
+        player = self.get_object()
+
+        statistics = (
+            PlayerMatchStatistics.objects
+            .select_related(
+                "match",
+                "match__tournament",
+                "match__team1",
+                "match__team2",
+                "match__stadium",
+                "team",
+                "player",
+            )
+            .filter(player=player)
+            .order_by("-match__scheduled_date")
+        )
+
+        completed_statistics = [
+            statistic
+            for statistic in statistics
+            if statistic.match.match_status == Match.Status.COMPLETED
+        ]
+
+        summary = {
+            "played_matches": len(completed_statistics),
+            "goals": sum(statistic.goals for statistic in completed_statistics),
+            "fouls": sum(statistic.fouls for statistic in completed_statistics),
+            "yellow_cards": sum(statistic.yellow_cards for statistic in completed_statistics),
+            "red_cards": sum(statistic.red_cards for statistic in completed_statistics),
+        }
+
+        match_history = []
+
+        for statistic in statistics:
+            match = statistic.match
+            if statistic.team_id == match.team1_id:
+                opponent = match.team2
+                player_team_score = match.team1_score
+                opponent_score = match.team2_score
+            else:
+                opponent = match.team1
+                player_team_score = match.team2_score
+                opponent_score = match.team1_score
+            result = "Not completed"
+
+            if (
+                    match.match_status == Match.Status.COMPLETED
+                    and player_team_score is not None
+                    and opponent_score is not None
+            ):
+                if player_team_score > opponent_score:
+                    result = "Win"
+                elif player_team_score < opponent_score:
+                    result = "Loss"
+                else:
+                    result = "Draw"
+
+            match_history.append({
+                "match_id": match.id,
+                "tournament_id": match.tournament.id,
+                "tournament_name": match.tournament.name,
+                "team_id": statistic.team.id,
+                "team_name": statistic.team.team_name,
+                "opponent_id": opponent.id,
+                "opponent_name": opponent.team_name,
+                "scheduled_date": match.scheduled_date,
+                "stadium_name": match.stadium.name if match.stadium else None,
+                "stadium_city": match.stadium.city if match.stadium else None,
+                "match_status": match.match_status,
+                "team_score": player_team_score,
+                "opponent_score": opponent_score,
+                "result": result,
+                "goals": statistic.goals,
+                "fouls": statistic.fouls,
+                "yellow_cards": statistic.yellow_cards,
+                "red_cards": statistic.red_cards,
+                "extra_statistics": statistic.extra_statistics,
+            })
+
+        return Response({
+            "player": PlayerSerializer(player).data,
+            "summary": summary,
+            "match_history": match_history,
+        })

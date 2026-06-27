@@ -907,8 +907,13 @@ onMounted(async () => {
   </td>
 
   <td class="px-4 py-3 font-medium text-gray-900">
+  <RouterLink
+    :to="{ name: 'player', params: { id: member.player.id } }"
+    class="font-semibold text-green-700 hover:text-green-800"
+  >
     {{ member.player.full_name }}
-  </td>
+  </RouterLink>
+</td>
 
   <td class="px-4 py-3 text-gray-700">
     #{{ member.player.main_shirt_number }}

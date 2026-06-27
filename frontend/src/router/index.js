@@ -10,6 +10,7 @@ import TournamentView from "@/views/TournamentView.vue";
 import LoginView from "@/views/LoginView.vue";
 import StadiumsView from "@/views/StadiumsView.vue";
 import MatchComponent from "@/views/MatchComponent.vue";
+import PlayerView from "@/views/PlayerView.vue";
 
 // Based on https://github.com/fussionlab/VueJs-Django
 const routes = [
@@ -62,6 +63,11 @@ const routes = [
         path: "/matches/:id",
         name: "match",
         component: MatchComponent,
+    },
+    {
+        path: '/players/:id',
+        name: 'player',
+        component: PlayerView,
     },
 ]
 

@@ -26,13 +26,14 @@ This project is being developed for the course 'Information Systems on the Inter
 - [x] Add team logos
 - [x] Add random generation of matches within a tournament
 - [x] Add player statistics
+- [x] View player statistics
 - [ ] Add Authentication
 - [x] Ensure Mobile Compatible UI 
 
 ### User Functionality
 
 - [ ] Create user roles
-- [ ] Add Admin role
+- [ ] Add Administrator role
 - [ ] Add Team Manager role
 - [ ] Add Referee role
 - [ ] Add visitor (public view) role

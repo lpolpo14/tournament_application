@@ -283,13 +283,27 @@ onMounted(loadPlayers)
                 :key="player.id"
                 class="hover:bg-gray-50"
               >
-                <td class="px-4 py-3 font-medium text-gray-900">
+
+                   <td class="px-4 py-3 text-gray-700">
+                     <RouterLink
+                    :to="{ name: 'player', params: { id: player.id } }"
+                    class="font-semibold text-green-700 hover:text-green-800"
+                  >
                   {{ player.name }}
+                  </RouterLink>
+
                 </td>
 
-                <td class="px-4 py-3 text-gray-700">
+
+                   <td class="px-4 py-3 text-gray-700">
+                     <RouterLink
+                    :to="{ name: 'player', params: { id: player.id } }"
+                    class="font-semibold text-green-700 hover:text-green-800"
+                  >
                   {{ player.surname }}
-                </td>
+                     </RouterLink>
+
+                  </td>
 
                 <td class="px-4 py-3 text-gray-700">
                   #{{ player.main_shirt_number }}

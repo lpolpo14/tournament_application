@@ -19,6 +19,9 @@ export const playerApi = {
   create(data) {
     return instance_api.post('/players/', data)
   },
+  getStatistics(playerId) {
+  return instance_api.get(`/players/${playerId}/statistics/`)
+  },
 }
 
 export const teamApi = {
