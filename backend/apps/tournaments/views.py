@@ -1,5 +1,6 @@
 from datetime import timedelta
 from itertools import combinations
+from random import random
 
 from django.shortcuts import render, get_object_or_404
 from rest_framework import viewsets, status
@@ -9,7 +10,7 @@ from rest_framework.response import Response
 from .serializers import TournamentParticipationSerializer
 from ..teams.models import Team
 from ..tournaments.models import Tournament, TournamentParticipation
-from ..matches.models import Match
+from ..matches.models import Match, Stadium
 from ..tournaments.serializers import TournamentSerializer
 
 # Create your views here.
@@ -85,6 +86,13 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 {"details": "Tournament must have at least 2 teams to commence."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        if not Stadium.objects.exists():
+            return Response(
+                {"detail": "At least one stadium is required before generating matches."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         tournament.status = Tournament.Status.ONGOING
         tournament.save()
 
@@ -131,6 +139,7 @@ class TournamentViewSet(viewsets.ModelViewSet):
 
     def _generate_round_robin_matches(self, tournament):
         teams = list(tournament.teams.all())
+        stadiums = list(Stadium.objects.all())
         pairs = list(combinations(teams, 2))
 
         if not pairs:
@@ -162,10 +171,13 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 offset_seconds =  total_tournament_seconds * (index/ (len(pairs) -1))
                 scheduled_date = tournament.start_date + timedelta(seconds=offset_seconds)
 
+            stadium = random.choice(stadiums)
+
             match = Match.objects.create(
                 tournament=tournament,
                 team1=team1,
                 team2=team2,
+                stadium=stadium,
                 scheduled_date=scheduled_date,
                 location=tournament.location,
                 match_status=Match.Status.SCHEDULED,

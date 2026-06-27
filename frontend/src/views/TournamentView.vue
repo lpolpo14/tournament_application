@@ -14,6 +14,59 @@ const selectedTeamId = ref("");
 const isAdmin = ref(true);
 const isTeamManager = ref(true);
 
+const generateMatchesOnCommence = ref(true);
+
+const stadiums = ref([]);
+
+const manualMatchForm = ref({
+  team1: "",
+  team2: "",
+  stadium: "",
+  scheduled_date: "",
+});
+
+async function fetchStadiums() {
+  const response = await instance_api.get("/stadiums/");
+  stadiums.value = normalizeList(response.data);
+}
+
+function toApiDateTime(datetimeLocalValue) {
+  if (!datetimeLocalValue) {
+    return null;
+  }
+
+  return new Date(datetimeLocalValue).toISOString();
+}
+
+async function createManualMatch() {
+  loading.value = true;
+  clearMessages();
+
+  try {
+    await instance_api.post("/matches/", {
+      tournament: tournamentId,
+      team1: manualMatchForm.value.team1,
+      team2: manualMatchForm.value.team2,
+      stadium: manualMatchForm.value.stadium,
+      scheduled_date: toApiDateTime(manualMatchForm.value.scheduled_date),
+    });
+
+    success.value = "Match created successfully.";
+
+    manualMatchForm.value = {
+      team1: "",
+      team2: "",
+      stadium: "",
+      scheduled_date: "",
+    };
+
+    await fetchMatches();
+  } catch (err) {
+    error.value = extractError(err);
+  } finally {
+    loading.value = false;
+  }
+}
 
 async function fetchTeams() {
   const response = await instance_api.get("/teams/");
@@ -88,10 +141,12 @@ async function commenceTournament() {
 
   try {
     const response = await instance_api.post(`/tournaments/${tournamentId}/commence/`, {
-      generate_matches: true,
+      generate_matches: generateMatchesOnCommence.value,
     });
 
-    success.value = `Tournament commenced. Generated ${response.data.generated_matches} matches.`;
+    success.value = generateMatchesOnCommence.value
+      ? `Tournament commenced. Generated ${response.data.generated_matches} matches.`
+      : "Tournament commenced. You can now create matches manually.";
 
     await Promise.all([
       fetchTournament(),
@@ -120,6 +175,18 @@ async function generateMatches() {
   } finally {
     loading.value = false;
   }
+}
+
+function stadiumLabel(match) {
+  if (match.stadium_name && match.stadium_city) {
+    return `${match.stadium_name} - ${match.stadium_city}`;
+  }
+
+  if (match.stadium_name) {
+    return match.stadium_name;
+  }
+
+  return "No stadium assigned";
 }
 
 const tournament = ref(null);
@@ -211,6 +278,7 @@ async function loadPage() {
     fetchStandings(),
     fetchTeams(),
     fetchRegistrations(),
+    fetchStadiums(),
     ]);
   } catch (err) {
     error.value = extractError(err);
@@ -566,6 +634,16 @@ onMounted(loadPage);
       </p>
     </div>
 
+    <label class="flex items-center gap-2 text-sm text-gray-700">
+  <input
+    v-model="generateMatchesOnCommence"
+    type="checkbox"
+    class="rounded border-gray-300"
+  />
+
+  Automatically generate matches
+</label>
+
     <div class="flex flex-col gap-2 sm:flex-row">
       <button
         v-if="tournament.status === 'Scheduled'"
@@ -593,6 +671,115 @@ onMounted(loadPage);
   >
     At least two accepted teams are required before commencing the tournament.
   </p>
+</section>
+
+        <section
+  v-if="isAdmin && tournament.status !== 'Completed' && tournament.status !== 'Cancelled'"
+  class="rounded-2xl bg-white p-6 shadow"
+>
+  <div>
+    <h2 class="text-xl font-bold text-gray-900">
+      Create Match Manually
+    </h2>
+
+    <p class="mt-1 text-sm text-gray-600">
+      Assign two accepted teams, a date/time, and a stadium.
+    </p>
+  </div>
+
+  <form
+    class="mt-4 grid gap-4 md:grid-cols-2"
+    @submit.prevent="createManualMatch"
+  >
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Team 1
+      </label>
+
+      <select
+        v-model="manualMatchForm.team1"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+        required
+      >
+        <option value="" disabled>Select first team</option>
+
+        <option
+          v-for="team in tournament.teams"
+          :key="team.id"
+          :value="team.id"
+        >
+          {{ team.team_name }}
+        </option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Team 2
+      </label>
+
+      <select
+        v-model="manualMatchForm.team2"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+        required
+      >
+        <option value="" disabled>Select second team</option>
+
+        <option
+          v-for="team in tournament.teams"
+          :key="team.id"
+          :value="team.id"
+        >
+          {{ team.team_name }}
+        </option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Stadium
+      </label>
+
+      <select
+        v-model="manualMatchForm.stadium"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+        required
+      >
+        <option value="" disabled>Select stadium</option>
+
+        <option
+          v-for="stadium in stadiums"
+          :key="stadium.id"
+          :value="stadium.id"
+        >
+          {{ stadium.name }} - {{ stadium.city }}
+        </option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Date and Time
+      </label>
+
+      <input
+        v-model="manualMatchForm.scheduled_date"
+        type="datetime-local"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+        required
+      />
+    </div>
+
+    <div class="md:col-span-2">
+      <button
+        type="submit"
+        class="rounded-lg bg-purple-600 px-5 py-3 font-semibold text-white hover:bg-purple-700 disabled:opacity-50"
+        :disabled="loading"
+      >
+        Create Match
+      </button>
+    </div>
+  </form>
 </section>
 
         <section class="rounded-2xl bg-white p-6 shadow">
@@ -647,9 +834,11 @@ onMounted(loadPage);
                   </p>
 
                   <p class="mt-1 text-sm text-gray-600">
-                    Location:
-                    {{ match.location }}
-                  </p>
+                    Stadium:
+                      <span class="font-semibold text-gray-800">
+                        {{ stadiumLabel(match) }}
+                      </span>
+                    </p>
 
                   <p class="mt-1 text-sm">
                     Status:

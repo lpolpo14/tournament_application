@@ -5,8 +5,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .serializers import MatchPatchSerializer
-from ..matches.serializers import MatchReadSerializer, MatchCreateSerializer, MatchPatchSerializer
-from ..matches.models import Match
+from ..matches.serializers import (MatchReadSerializer, MatchCreateSerializer,
+                                   MatchPatchSerializer, StadiumSerializer)
+from ..matches.models import Match, Stadium
 
 # Create your views here.
 
@@ -64,3 +65,7 @@ class MatchViewSet(viewsets.ModelViewSet):
 
         read_serializer = MatchReadSerializer(updated_match)
         return Response(read_serializer.data)
+
+class StadiumViewSet(viewsets.ModelViewSet):
+    queryset = Stadium.objects.all().order_by("name")
+    serializer_class = StadiumSerializer

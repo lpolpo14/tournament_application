@@ -10,6 +10,7 @@ const menus = {
   visitor: [
     { label: 'Home', path: '/' },
     { label: 'Tournaments', path: '/tournaments' },
+    { label: 'Stadiums', path: '/stadiums'},
     { label: 'Teams', path: '/teams' },
     { label: 'Players', path: '/players'}
   ],

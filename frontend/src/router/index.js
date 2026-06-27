@@ -8,6 +8,7 @@ import TournamentCreate from "@/views/TournamentCreate.vue";
 import TournamentsView from "@/views/TournamentsView.vue";
 import TournamentView from "@/views/TournamentView.vue";
 import LoginView from "@/views/LoginView.vue";
+import StadiumsView from "@/views/StadiumsView.vue";
 
 // Based on https://github.com/fussionlab/VueJs-Django
 const routes = [
@@ -50,7 +51,12 @@ const routes = [
         path: "/login",
         name: "login",
         component: LoginView
-    }
+    },
+    {
+        path: "/stadiums",
+        name: "stadiums",
+        component: StadiumsView,
+    },
 ]
 
 const router = createRouter({

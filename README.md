@@ -17,17 +17,17 @@ This project is being developed for the course 'Information Systems on the Inter
 - [x] Assign player to team option
 - [x] Create a tournament option
 - [x] View all tournaments options
-- [ ] Create/Add a match option
+- [x] Create/Add a match option
 - [ ] View all matches of a tournament options
 - [ ] View a team's past matches
 - [ ] Submission of final score
 - [ ] Add player details as well as granted cards (yellow/red cards etc)
-- [ ] Create a tournament dashboard with team ordering based on score
+- [x] Create a tournament dashboard with team ordering based on score
 - [x] Add team logos
 - [x] Add random generation of matches within a tournament
 - [ ] Add player statistics
 - [ ] Add Authentication
-- [ ] Ensure Mobile Compatible UI 
+- [x] Ensure Mobile Compatible UI 
 
 ### User Functionality
 
