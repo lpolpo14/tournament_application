@@ -4,11 +4,28 @@ from ..matches.models import Match
 
 
 class MatchReadSerializer(serializers.ModelSerializer):
+    team1_name = serializers.CharField(source="team1.team_name", read_only=True)
+    team2_name = serializers.CharField(source="team2.team_name", read_only=True)
+    tournament_name = serializers.CharField(source="tournament.name", read_only=True)
+
     class Meta:
         model = Match
-        fields = ["id","tournament", "team1", "team2", "team1_score", "team2_score", "location", "scheduled_date", "match_status"]
-        read_only_fields = ["id", "tournament", "team1", "team2", "team1_score", "team2_score", "location", "scheduled_date" ,"match_status"]
+        fields = [
+            "id",
+            "tournament",
+            "tournament_name",
+            "team1",
+            "team1_name",
+            "team2",
+            "team2_name",
+            "team1_score",
+            "team2_score",
+            "location",
+            "scheduled_date",
+            "match_status",
+        ]
 
+        read_only_fields = fields
 class MatchCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Match

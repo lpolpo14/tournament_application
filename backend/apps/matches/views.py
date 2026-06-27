@@ -16,9 +16,9 @@ class MatchViewSet(viewsets.ModelViewSet):
     ordering_fields = ["scheduled_date"]
 
     def get_serializer_class(self):
-        if self.request.method in ["list", "retrieve"]:
+        if self.action in ["list", "retrieve"]:
             return MatchReadSerializer
-        elif self.request.method == "create":
+        if self.action == "create":
             return MatchCreateSerializer
         return MatchPatchSerializer
 

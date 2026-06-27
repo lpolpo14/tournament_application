@@ -8,15 +8,15 @@ This project is being developed for the course 'Information Systems on the Inter
 
 - [x] Working Django REST + Vue Architecture
 - [x] Create Functional Models using Django
-- [ ] Optimize backend models and serializers
+- [x] Optimize backend models and serializers
 - [x] Add database constraints
 - [x] Create a dedicated Teams Page.
 - [x] View all teams option.
 - [x] Create Teams option.
 - [x] Create/Get player options
 - [x] Assign player to team option
-- [ ] Create a tournament option
-- [ ] View all tournaments options
+- [x] Create a tournament option
+- [x] View all tournaments options
 - [ ] Create/Add a match option
 - [ ] View all matches of a tournament options
 - [ ] View a team's past matches
@@ -24,7 +24,7 @@ This project is being developed for the course 'Information Systems on the Inter
 - [ ] Add player details as well as granted cards (yellow/red cards etc)
 - [ ] Create a tournament dashboard with team ordering based on score
 - [x] Add team logos
-- [ ] Add random generation of teams, matches within a tournament
+- [x] Add random generation of matches within a tournament
 - [ ] Add player statistics
 - [ ] Add Authentication
 - [ ] Ensure Mobile Compatible UI 
