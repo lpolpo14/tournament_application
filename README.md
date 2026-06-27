@@ -18,14 +18,14 @@ This project is being developed for the course 'Information Systems on the Inter
 - [x] Create a tournament option
 - [x] View all tournaments options
 - [x] Create/Add a match option
-- [ ] View all matches of a tournament options
+- [x] View all matches of a tournament options
 - [ ] View a team's past matches
-- [ ] Submission of final score
+- [x] Submission of final score
 - [ ] Add player details as well as granted cards (yellow/red cards etc)
 - [x] Create a tournament dashboard with team ordering based on score
 - [x] Add team logos
 - [x] Add random generation of matches within a tournament
-- [ ] Add player statistics
+- [x] Add player statistics
 - [ ] Add Authentication
 - [x] Ensure Mobile Compatible UI 
 
@@ -45,3 +45,7 @@ This project is being developed for the course 'Information Systems on the Inter
 - [ ] CSRF Headers
 - [ ] Session Management
 - [ ] Authentication \& Authorization
+
+### Miscellaneous
+
+- [ ] Deploy on Railway

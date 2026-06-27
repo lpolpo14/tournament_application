@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -23,10 +23,12 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-(uhug$6-cpw=s0@@9zen05w=2ateqm@c6u9o3lyvgw^t5dk8*0'
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY","django-insecure-(uhug$6-cpw=s0@@9zen05w=2ateqm@c6u9o3lyvgw^t5dk8*0'")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
+
+VITE_API_BASE_URL=os.environ.get("VITE_API_BASE_URL")
 
 ALLOWED_HOSTS = []
 
