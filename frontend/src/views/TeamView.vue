@@ -20,6 +20,81 @@ const addPlayerSuccess = ref('')
 
 const editMode = ref(route.query.edit === 'true')
 
+const teamMatches = ref({
+  future_matches: [],
+  past_matches: [],
+})
+
+const matchesLoading = ref(false)
+const matchesError = ref('')
+const showPastMatches = ref(false)
+
+const futureMatches = computed(() => {
+  return teamMatches.value.future_matches ?? []
+})
+
+const pastMatches = computed(() => {
+  return teamMatches.value.past_matches ?? []
+})
+
+function formatMatchDate(dateValue) {
+  if (!dateValue) {
+    return 'Not scheduled'
+  }
+
+  return new Intl.DateTimeFormat('en-GB', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(dateValue))
+}
+
+function getOpponentName(match) {
+  if (!team.value) {
+    return 'Opponent'
+  }
+
+  const currentTeamId = Number(team.value.id)
+
+  if (Number(match.team1) === currentTeamId) {
+    return match.team2_name
+  }
+
+  return match.team1_name
+}
+
+function getScoreText(match) {
+  if (match.team1_score === null || match.team2_score === null) {
+    return 'Score not submitted'
+  }
+
+  return `${match.team1_score} - ${match.team2_score}`
+}
+
+function getStadiumText(match) {
+  const parts = [match.stadium_name, match.stadium_city].filter(Boolean)
+
+  if (parts.length === 0) {
+    return 'No stadium assigned'
+  }
+
+  return parts.join(', ')
+}
+async function loadTeamMatches() {
+  matchesLoading.value = true
+  matchesError.value = ''
+
+  try {
+    const response = await teamApi.getMatches(route.params.id, {
+      future_limit: 3,
+    })
+
+    teamMatches.value = response.data
+  } catch (err) {
+    matchesError.value = 'Could not load team matches.'
+  } finally {
+    matchesLoading.value = false
+  }
+}
 
 const selectedLogo = ref(null)
 const logoPreview = ref('')
@@ -268,6 +343,7 @@ async function addPlayerToTeam(player) {
 onMounted(async () => {
   await loadTeam()
   await loadAvailablePlayers()
+  await loadTeamMatches()
 })
 </script>
 
@@ -423,7 +499,181 @@ onMounted(async () => {
               >
                   {{ success }}
             </p>
+<section class="grid gap-6 lg:grid-cols-2">
+  <!-- Future matches -->
+  <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+    <h2 class="text-2xl font-bold text-gray-900">
+      Upcoming Matches
+    </h2>
 
+    <p class="mt-1 text-sm text-gray-600">
+      The next scheduled matches for this team.
+    </p>
+
+    <p
+      v-if="matchesLoading"
+      class="mt-6 text-gray-600"
+    >
+      Loading matches...
+    </p>
+
+    <p
+      v-else-if="matchesError"
+      class="mt-6 rounded-xl bg-red-50 p-3 text-sm text-red-700"
+    >
+      {{ matchesError }}
+    </p>
+
+    <p
+      v-else-if="futureMatches.length === 0"
+      class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
+    >
+      No upcoming matches found.
+    </p>
+
+    <div
+      v-else
+      class="mt-6 space-y-4"
+    >
+      <article
+        v-for="match in futureMatches"
+        :key="match.id"
+        class="rounded-xl border border-gray-200 p-4"
+      >
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p class="font-semibold text-gray-900">
+              vs {{ getOpponentName(match) }}
+            </p>
+
+            <p class="mt-1 text-sm text-gray-600">
+              Tournament: {{ match.tournament_name }}
+            </p>
+
+            <p class="mt-1 text-sm text-gray-600">
+              {{ formatMatchDate(match.scheduled_date) }}
+            </p>
+
+            <p class="mt-1 text-sm text-gray-600">
+              {{ getStadiumText(match) }}
+            </p>
+          </div>
+
+          <span class="rounded-full bg-green-50 px-3 py-1 text-sm font-semibold text-green-700">
+            {{ match.match_status }}
+          </span>
+        </div>
+
+        <RouterLink
+          :to="`/tournament/${match.tournament}`"
+          class="mt-4 inline-block text-sm font-semibold text-green-700 hover:text-green-800"
+        >
+          View tournament
+        </RouterLink>
+      </article>
+    </div>
+  </section>
+
+  <!-- Past matches -->
+  <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900">
+          Past Matches
+        </h2>
+
+        <p class="mt-1 text-sm text-gray-600">
+          Completed or already-played matches for this team.
+        </p>
+      </div>
+
+      <button
+        @click="showPastMatches = !showPastMatches"
+        class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+      >
+        {{ showPastMatches ? 'Hide Past Matches' : `View Past Matches (${pastMatches.length})` }}
+      </button>
+    </div>
+
+    <p
+      v-if="matchesLoading"
+      class="mt-6 text-gray-600"
+    >
+      Loading matches...
+    </p>
+
+    <p
+      v-else-if="matchesError"
+      class="mt-6 rounded-xl bg-red-50 p-3 text-sm text-red-700"
+    >
+      {{ matchesError }}
+    </p>
+
+    <p
+      v-else-if="pastMatches.length === 0"
+      class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
+    >
+      No past matches found.
+    </p>
+
+    <div
+      v-else-if="showPastMatches"
+      class="mt-6 overflow-hidden rounded-xl border border-gray-200"
+    >
+      <table class="w-full text-left text-sm">
+        <thead class="bg-gray-50 text-gray-700">
+          <tr>
+            <th class="px-4 py-3">Match</th>
+            <th class="px-4 py-3">Tournament</th>
+            <th class="px-4 py-3">Date</th>
+            <th class="px-4 py-3">Score</th>
+            <th class="px-4 py-3">Status</th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-gray-200">
+          <tr
+            v-for="match in pastMatches"
+            :key="match.id"
+            class="hover:bg-gray-50"
+          >
+            <td class="px-4 py-3 font-medium text-gray-900">
+              {{ match.team1_name }} vs {{ match.team2_name }}
+            </td>
+
+            <td class="px-4 py-3 text-gray-700">
+              <RouterLink
+                :to="`/tournament/${match.tournament}`"
+                class="font-semibold text-green-700 hover:text-green-800"
+              >
+                {{ match.tournament_name }}
+              </RouterLink>
+            </td>
+
+            <td class="px-4 py-3 text-gray-700">
+              {{ formatMatchDate(match.scheduled_date) }}
+            </td>
+
+            <td class="px-4 py-3 font-semibold text-gray-900">
+              {{ getScoreText(match) }}
+            </td>
+
+            <td class="px-4 py-3 text-gray-700">
+              {{ match.match_status }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p
+      v-else
+      class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
+    >
+      Click “View Past Matches” to show this team’s match history.
+    </p>
+  </section>
+</section>
         <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 class="text-2xl font-bold text-gray-900">
             Team Players

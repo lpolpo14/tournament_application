@@ -48,4 +48,4 @@ This project is being developed for the course 'Information Systems on the Inter
 
 ### Miscellaneous
 
-- [ ] Deploy on Railway
+- [x] Deploy on Railway
