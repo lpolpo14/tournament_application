@@ -13,6 +13,8 @@ const registrations = ref([]);
 const selectedTeamId = ref("");
 const isAdmin = ref(true);
 const isTeamManager = ref(true);
+const isReferee = ref(true);
+
 
 const generateMatchesOnCommence = ref(true);
 
@@ -193,7 +195,6 @@ const tournament = ref(null);
 const matches = ref([]);
 const standings = ref([]);
 
-const scoreForms = ref({});
 
 const loading = ref(false);
 const error = ref("");
@@ -253,13 +254,6 @@ async function fetchMatches() {
   });
 
   matches.value = normalizeList(response.data);
-
-  for (const match of matches.value) {
-    scoreForms.value[match.id] = {
-      team1_score: match.team1_score ?? "",
-      team2_score: match.team2_score ?? "",
-    };
-  }
 }
 
 async function fetchStandings() {
@@ -287,30 +281,6 @@ async function loadPage() {
   }
 }
 
-async function submitScore(match) {
-  loading.value = true;
-  clearMessages();
-
-  try {
-    const form = scoreForms.value[match.id];
-
-    await instance_api.patch(`/matches/${match.id}/submit-score/`, {
-      team1_score: Number(form.team1_score),
-      team2_score: Number(form.team2_score),
-    });
-
-    success.value = "Score submitted successfully.";
-
-    await Promise.all([
-      fetchMatches(),
-      fetchStandings(),
-    ]);
-  } catch (err) {
-    error.value = extractError(err);
-  } finally {
-    loading.value = false;
-  }
-}
 
 onMounted(loadPage);
 </script>
@@ -866,48 +836,15 @@ onMounted(loadPage);
                 </div>
               </div>
 
-              <form
-                class="mt-4 grid gap-3 md:grid-cols-3"
-                @submit.prevent="submitScore(match)"
-              >
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">
-                    {{ teamLabel(match, "team1") }} Score
-                  </label>
-
-                  <input
-                    v-model="scoreForms[match.id].team1_score"
-                    type="number"
-                    min="0"
-                    class="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">
-                    {{ teamLabel(match, "team2") }} Score
-                  </label>
-
-                  <input
-                    v-model="scoreForms[match.id].team2_score"
-                    type="number"
-                    min="0"
-                    class="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                    required
-                  />
-                </div>
-
-                <div class="flex items-end">
-                  <button
-                    type="submit"
-                    class="w-full rounded-lg bg-purple-600 px-4 py-2 font-semibold text-white hover:bg-purple-700 disabled:opacity-50"
-                    :disabled="loading"
-                  >
-                    Submit Score
-                  </button>
-                </div>
-              </form>
+              <div class="mt-4 flex justify-end">
+  <RouterLink
+    :to="{ name: 'match', params: { id: match.id } }"
+    class="rounded-lg px-4 py-2 text-sm font-semibold text-white"
+    :class="isReferee ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-900 hover:bg-black'"
+  >
+    {{ isReferee ? "Add/Edit Scores" : "View Match Scores and Statistics" }}
+  </RouterLink>
+</div>
             </article>
           </div>
         </section>
