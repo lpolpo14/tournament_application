@@ -1,7 +1,6 @@
 from datetime import timedelta
 from itertools import combinations
-from random import random
-
+import random
 from django.shortcuts import render, get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -17,7 +16,10 @@ from ..tournaments.serializers import TournamentSerializer
 from .services import  calculate_tournament_standings
 from ..users.permissions import IsTeamManager, IsSportsAdmin, DenyAll
 
-# Create your views here.
+from django.contrib.auth import get_user_model
+from ..users.models import UserDetails
+
+User = get_user_model()
 
 """
 Right now we are using computed standings, meaning that we calculate standings constantly.
@@ -119,6 +121,11 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        if not User.objects.filter(details__role=UserDetails.Role.REFEREE).exists():
+            return Response(
+                {"detail": "At least one referee is required before generating matches."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         tournament.status = Tournament.Status.ONGOING
         tournament.save()
 
@@ -154,6 +161,12 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        if not User.objects.filter(details__role=UserDetails.Role.REFEREE).exists():
+            return Response(
+                {"detail": "At least one referee is required before generating matches."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         generated_matches = self._generate_round_robin_matches(tournament)
 
         return Response(
@@ -167,6 +180,7 @@ class TournamentViewSet(viewsets.ModelViewSet):
         teams = list(tournament.teams.all())
         stadiums = list(Stadium.objects.all())
         pairs = list(combinations(teams, 2))
+        referees = list(User.objects.filter(details__role=UserDetails.Role.REFEREE).order_by("id"))
 
         if not pairs:
             return []
@@ -198,14 +212,15 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 scheduled_date = tournament.start_date + timedelta(seconds=offset_seconds)
 
             stadium = random.choice(stadiums)
+            referee = random.choice(referees)
 
             match = Match.objects.create(
                 tournament=tournament,
                 team1=team1,
                 team2=team2,
                 stadium=stadium,
+                referee=referee,
                 scheduled_date=scheduled_date,
-                location=tournament.location,
                 match_status=Match.Status.SCHEDULED,
             )
             generated_matches.append(match)

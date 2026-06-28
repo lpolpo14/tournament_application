@@ -18,7 +18,13 @@ from ..users.permissions import  IsSportsAdmin, \
 # Create your views here.
 
 class MatchViewSet(viewsets.ModelViewSet):
-    queryset = Match.objects.select_related("tournament","team1","team2").all()
+    queryset = Match.objects.select_related(
+        "tournament",
+        "team1",
+        "team2",
+        "stadium",
+        "referee",
+    ).all()
     search_fields = ["tournament", "team1", "team2", "location"]
     ordering_fields = ["scheduled_date"]
 
@@ -34,6 +40,8 @@ class MatchViewSet(viewsets.ModelViewSet):
             "tournament",
             "team1",
             "team2",
+            "stadium",
+            "referee",
         ).all()
 
         tournament_id = self.request.query_params.get("tournament")
@@ -164,12 +172,12 @@ class PlayerMatchStatisticsViewSet(viewsets.ModelViewSet):
                 "You can only add statistics for matches assigned to you."
             )
 
-        serializer.save()
+        serializer.save(referee=self.request.user)
 
     def perform_update(self, serializer):
         statistic = self.get_object()
         self.check_object_permissions(self.request, statistic)
-        serializer.save()
+        serializer.save(referee=self.request.user)
 
     def perform_destroy(self, instance):
         self.check_object_permissions(self.request, instance)

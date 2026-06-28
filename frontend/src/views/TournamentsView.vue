@@ -1,14 +1,20 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import instance_api from "@/services/api.js";
+import { useAuth } from "@/services/useAuth.js";
+
+const { role, isAuthenticated, isLoaded, loadUser } = useAuth();
 
 const tournaments = ref([]);
 const loading = ref(false);
 const error = ref("");
 
+const canManageTournaments = computed(() => {
+  return isAuthenticated.value && role.value === "sports_admin";
+});
+
 function normalizeTournaments(data) {
-  // Supports both normal DRF lists and paginated responses.
   return Array.isArray(data) ? data : data.results || [];
 }
 
@@ -42,9 +48,14 @@ async function fetchTournaments() {
   }
 }
 
-onMounted(fetchTournaments);
-</script>
+onMounted(async () => {
+  if (!isLoaded.value) {
+    await loadUser();
+  }
 
+  await fetchTournaments();
+});
+</script>
 <template>
   <main class="min-h-screen bg-gray-100 p-6">
     <div class="mx-auto max-w-6xl space-y-6">
@@ -55,14 +66,15 @@ onMounted(fetchTournaments);
           </h1>
 
           <p class="mt-2 text-gray-600">
-            View and manage all tournaments.
+             Browse tournaments, teams, schedules, and standings.
           </p>
         </div>
 
         <RouterLink
+          v-if="canManageTournaments"
           :to="{ name: 'tournament-create' }"
           class="rounded-lg bg-green-600 px-4 py-2 text-center font-semibold text-white hover:bg-green-700"
-        >
+          >
           Create Tournament
         </RouterLink>
       </header>
@@ -90,11 +102,19 @@ onMounted(fetchTournaments);
           </p>
 
           <RouterLink
-            :to="{ name: 'tournament-create' }"
-            class="mt-4 inline-block rounded-lg bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-700"
-          >
-            Create your first tournament
-          </RouterLink>
+  v-if="canManageTournaments"
+  :to="{ name: 'tournament-create' }"
+  class="mt-4 inline-block rounded-lg bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-700"
+>
+  Create your first tournament
+</RouterLink>
+
+<p
+  v-else
+  class="mt-3 text-sm text-gray-500"
+>
+  New tournaments will appear here when they are created by a sports administrator.
+</p>
         </div>
 
         <div v-else class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">

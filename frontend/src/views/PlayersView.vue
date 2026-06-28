@@ -1,6 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { playerApi } from '@/services/api.js'
+import { useAuth } from '@/services/useAuth.js'
+
+const { role, isAuthenticated, loadUser } = useAuth()
 
 const players = ref([])
 const loading = ref(false)
@@ -24,14 +27,8 @@ const positions = [
   { value: 'FR', label: 'Forward' },
 ]
 
-// Authenticaiton Placeholder
-const currentUser = ref({
-  isAuthenticated: true,
-  role: 'team_organizer',
-})
-
 const canAddPlayers = computed(() => {
-  return currentUser.value.isAuthenticated && currentUser.value.role === 'team_organizer'
+  return isAuthenticated.value && role.value === 'team_manager'
 })
 
 const filteredPlayers = computed(() => {
@@ -44,7 +41,7 @@ const filteredPlayers = computed(() => {
   return players.value.filter((player) => {
     const fullName = `${player.name ?? ''} ${player.surname ?? ''}`.toLowerCase()
     const shirtNumber = String(player.main_shirt_number ?? '')
-    const position = String(player.position ?? '').toLowerCase()
+    const position = String(player.position_display ?? player.position ?? '').toLowerCase()
 
     return (
       fullName.includes(query) ||
@@ -74,6 +71,11 @@ async function loadPlayers() {
 }
 
 async function createPlayer() {
+  if (!canAddPlayers.value) {
+    error.value = 'You must be signed in as a team manager to add players.'
+    return
+  }
+
   error.value = ''
   successAdd.value = ''
 
@@ -91,13 +93,15 @@ async function createPlayer() {
 
     await loadPlayers()
   } catch (err) {
-    error.value = 'Could not add player.'
+    error.value = err.response?.data?.detail || 'Could not add player.'
   }
 }
 
-onMounted(loadPlayers)
+onMounted(async () => {
+  await loadUser()
+  await loadPlayers()
+})
 </script>
-
 <template>
   <main class="min-h-screen bg-gray-50 px-6 py-10">
     <div class="mx-auto max-w-7xl space-y-10">
@@ -107,7 +111,7 @@ onMounted(loadPlayers)
         </h1>
 
         <p class="mt-3 max-w-2xl text-gray-600">
-          Add new players and search existing registered athletes.
+          Search existing registered athletes and view their player pages.
         </p>
       </section>
 

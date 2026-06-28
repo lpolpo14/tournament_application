@@ -98,3 +98,9 @@ export const teamApi = {
   return instance_api.get(`/teams/${teamId}/tournament-standings/`)
   },
 }
+
+export const userApi = {
+  getReferees() {
+    return instance_api.get('/auth/referees/')
+  },
+}

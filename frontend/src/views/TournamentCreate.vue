@@ -1,12 +1,19 @@
 <script setup>
-import { ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter, RouterLink } from "vue-router";
 import instance_api from "@/services/api.js";
+import { useAuth } from "@/services/useAuth.js";
 
 const router = useRouter();
 
+const { role, isAuthenticated, isLoaded, loadUser } = useAuth();
+
 const loading = ref(false);
 const error = ref("");
+
+const canManageTournaments = computed(() => {
+  return isAuthenticated.value && role.value === "sports_admin";
+});
 
 const form = ref({
   name: "",
@@ -34,18 +41,23 @@ function toApiDateTime(datetimeLocalValue) {
 }
 
 async function createTournament() {
+  if (!canManageTournaments.value) {
+    error.value = "Only sports administrators can create tournaments.";
+    return;
+  }
+
   loading.value = true;
   error.value = "";
 
   try {
     const payload = {
-    name: form.value.name,
-    sport: form.value.sport,
-    location: form.value.location,
-    start_date: toApiDateTime(form.value.start_date),
-    end_date: toApiDateTime(form.value.end_date),
-    status: "Scheduled",
-  };
+      name: form.value.name,
+      sport: form.value.sport,
+      location: form.value.location,
+      start_date: toApiDateTime(form.value.start_date),
+      end_date: toApiDateTime(form.value.end_date),
+      status: "Scheduled",
+    };
 
     const response = await instance_api.post("/tournaments/", payload);
 
@@ -65,8 +77,13 @@ async function createTournament() {
     loading.value = false;
   }
 }
-</script>
 
+onMounted(async () => {
+  if (!isLoaded.value) {
+    await loadUser();
+  }
+});
+</script>
 <template>
   <main class="min-h-screen bg-gray-100 p-6">
     <div class="mx-auto max-w-3xl space-y-6">
@@ -92,8 +109,40 @@ async function createTournament() {
         <pre class="mt-2 whitespace-pre-wrap text-sm text-red-800">{{ error }}</pre>
       </section>
 
-      <section class="rounded-2xl bg-white p-6 shadow">
-        <form class="space-y-5" @submit.prevent="createTournament">
+      <section
+  v-if="!isLoaded"
+  class="rounded-2xl bg-white p-6 shadow"
+>
+  <p class="text-gray-600">
+    Checking permissions...
+  </p>
+</section>
+
+<section
+  v-else-if="!canManageTournaments"
+  class="rounded-2xl bg-white p-6 shadow"
+>
+  <h2 class="text-xl font-bold text-gray-900">
+    Access denied
+  </h2>
+
+  <p class="mt-2 text-gray-600">
+    Only sports administrators can create tournaments.
+  </p>
+
+  <RouterLink
+    :to="{ name: 'tournaments' }"
+    class="mt-5 inline-block rounded-lg bg-gray-900 px-4 py-2 font-semibold text-white hover:bg-black"
+  >
+    Back to tournaments
+  </RouterLink>
+</section>
+
+<section
+  v-else
+  class="rounded-2xl bg-white p-6 shadow"
+>
+  <form class="space-y-5" @submit.prevent="createTournament">
           <div>
             <label class="block text-sm font-medium text-gray-700">
               Tournament Name
@@ -169,15 +218,10 @@ async function createTournament() {
               Status
             </label>
 
-            <select
-              v-model="form.status"
-              class="mt-1 w-full rounded-lg border border-gray-300 p-3 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-            >
-              <option value="Scheduled">Scheduled</option>
-              <option value="Ongoing">Ongoing</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
+            <div class="rounded-xl bg-gray-50 p-4 text-sm text-gray-600">
+  New tournaments are created as
+  <span class="font-semibold text-gray-900">Scheduled</span>.
+</div>
           </div>
 
           <div class="flex flex-col gap-3 pt-4 sm:flex-row">

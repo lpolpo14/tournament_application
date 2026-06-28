@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.conf.global_settings import AUTH_USER_MODEL
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -19,6 +20,15 @@ class Match(models.Model):
     tournament = models.ForeignKey('tournaments.Tournament', on_delete=models.CASCADE, related_name='tournament_matches')
     scheduled_date = models.DateTimeField()
     stadium = models.ForeignKey('matches.Stadium', on_delete=models.SET_NULL, null=True, blank=True, related_name="matches")
+
+    referee = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='refereed_matches',
+    )
+
     team1_score = models.PositiveIntegerField(null=True, blank=True) # No need for immediate initialization.
     team2_score = models.PositiveIntegerField(null=True, blank=True)
     match_status = models.CharField(max_length=100,choices=Status.choices, default='Scheduled')

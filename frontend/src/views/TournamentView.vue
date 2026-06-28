@@ -1,19 +1,53 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, RouterLink } from "vue-router";
-import instance_api from "@/services/api.js";
-import StandingsTable from "@/components/helpers/StandingsTable.vue";
+import instance_api, { teamApi, userApi } from "@/services/api.js";
+import { useAuth } from "@/services/useAuth.js";
 
 const route = useRoute();
 
 const tournamentId = route.params.id;
+const { user, role, isAuthenticated, isLoaded, loadUser } = useAuth();
 
 const teams = ref([]);
 const registrations = ref([]);
 const selectedTeamId = ref("");
-const isAdmin = ref(true);
-const isTeamManager = ref(true);
-const isReferee = ref(true);
+const referees = ref([]);
+
+const isSportsAdmin = computed(() => {
+  return isAuthenticated.value && role.value === "sports_admin";
+});
+
+const isTeamManager = computed(() => {
+  return isAuthenticated.value && role.value === "team_manager";
+});
+
+const isReferee = computed(() => {
+  return isAuthenticated.value && role.value === "referee";
+});
+
+const canManageTournament = computed(() => {
+  return isSportsAdmin.value;
+});
+
+const canRequestRegistration = computed(() => {
+  return (
+    isTeamManager.value &&
+    tournament.value?.status === "Scheduled"
+  );
+});
+
+const canViewRegistrationRequests = computed(() => {
+  return isSportsAdmin.value;
+});
+
+const canCreateMatches = computed(() => {
+  return (
+    isSportsAdmin.value &&
+    tournament.value?.status !== "Completed" &&
+    tournament.value?.status !== "Cancelled"
+  );
+});
 
 
 const generateMatchesOnCommence = ref(true);
@@ -24,8 +58,14 @@ const manualMatchForm = ref({
   team1: "",
   team2: "",
   stadium: "",
+  referee: "",
   scheduled_date: "",
 });
+
+async function fetchReferees() {
+  const response = await userApi.getReferees();
+  referees.value = normalizeList(response.data);
+}
 
 async function fetchStadiums() {
   const response = await instance_api.get("/stadiums/");
@@ -41,6 +81,16 @@ function toApiDateTime(datetimeLocalValue) {
 }
 
 async function createManualMatch() {
+  if (!canCreateMatches.value) {
+    error.value = "Only sports administrators can create matches for active tournaments.";
+    return;
+  }
+
+  if (manualMatchForm.value.team1 === manualMatchForm.value.team2) {
+    error.value = "A team cannot play against itself.";
+    return;
+  }
+
   loading.value = true;
   clearMessages();
 
@@ -50,6 +100,7 @@ async function createManualMatch() {
       team1: manualMatchForm.value.team1,
       team2: manualMatchForm.value.team2,
       stadium: manualMatchForm.value.stadium,
+      referee: manualMatchForm.value.referee,
       scheduled_date: toApiDateTime(manualMatchForm.value.scheduled_date),
     });
 
@@ -59,6 +110,7 @@ async function createManualMatch() {
       team1: "",
       team2: "",
       stadium: "",
+      referee: "",
       scheduled_date: "",
     };
 
@@ -70,8 +122,8 @@ async function createManualMatch() {
   }
 }
 
-async function fetchTeams() {
-  const response = await instance_api.get("/teams/");
+async function fetchMyTeams() {
+  const response = await teamApi.getMine();
   teams.value = normalizeList(response.data);
 }
 
@@ -81,6 +133,11 @@ async function fetchRegistrations() {
 }
 
 async function requestRegistration() {
+  if (!canRequestRegistration.value) {
+    error.value = "Only team managers can request registration while the tournament is scheduled.";
+    return;
+  }
+
   loading.value = true;
   clearMessages();
 
@@ -90,8 +147,7 @@ async function requestRegistration() {
     });
 
     success.value = "Registration request submitted successfully.";
-
-    await fetchRegistrations();
+    selectedTeamId.value = "";
   } catch (err) {
     error.value = extractError(err);
   } finally {
@@ -100,6 +156,11 @@ async function requestRegistration() {
 }
 
 async function acceptRegistration(registration) {
+  if (!canManageTournament.value) {
+    error.value = "Only sports administrators can accept registration requests.";
+    return;
+  }
+
   loading.value = true;
   clearMessages();
 
@@ -121,6 +182,11 @@ async function acceptRegistration(registration) {
 }
 
 async function rejectRegistration(registration) {
+  if (!canManageTournament.value) {
+    error.value = "Only sports administrators can reject registration requests.";
+    return;
+  }
+
   loading.value = true;
   clearMessages();
 
@@ -138,6 +204,11 @@ async function rejectRegistration(registration) {
 }
 
 async function commenceTournament() {
+  if (!canManageTournament.value) {
+    error.value = "Only sports administrators can commence tournaments.";
+    return;
+  }
+
   loading.value = true;
   clearMessages();
 
@@ -163,6 +234,11 @@ async function commenceTournament() {
 }
 
 async function generateMatches() {
+  if (!canManageTournament.value) {
+    error.value = "Only sports administrators can generate matches.";
+    return;
+  }
+
   loading.value = true;
   clearMessages();
 
@@ -177,6 +253,14 @@ async function generateMatches() {
   } finally {
     loading.value = false;
   }
+}
+
+function canSubmitThisMatch(match) {
+  return (
+    isReferee.value &&
+    user.value?.id &&
+    Number(match.referee) === Number(user.value.id)
+  );
 }
 
 function stadiumLabel(match) {
@@ -266,21 +350,33 @@ async function loadPage() {
   clearMessages();
 
   try {
+    if (!isLoaded.value) {
+      await loadUser();
+    }
+
     await Promise.all([
-    fetchTournament(),
-    fetchMatches(),
-    fetchStandings(),
-    fetchTeams(),
-    fetchRegistrations(),
-    fetchStadiums(),
+      fetchTournament(),
+      fetchMatches(),
+      fetchStandings(),
     ]);
+
+    if (isTeamManager.value) {
+      await fetchMyTeams();
+    }
+
+    if (isSportsAdmin.value) {
+      await Promise.all([
+        fetchRegistrations(),
+        fetchStadiums(),
+          fetchReferees(),
+      ]);
+    }
   } catch (err) {
     error.value = extractError(err);
   } finally {
     loading.value = false;
   }
 }
-
 
 onMounted(loadPage);
 </script>
@@ -363,7 +459,8 @@ onMounted(loadPage);
           </article>
         </section>
         <section
-  v-if="tournament.status === 'Scheduled'"
+  <section
+  v-if="tournament.status === 'Scheduled' && isTeamManager"
   class="rounded-2xl bg-white p-6 shadow"
 >
   <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -379,7 +476,6 @@ onMounted(loadPage);
   </div>
 
   <form
-    v-if="isTeamManager"
     class="mt-4 grid gap-3 md:grid-cols-3"
     @submit.prevent="requestRegistration"
   >
@@ -420,7 +516,7 @@ onMounted(loadPage);
 </section>
 
         <section
-  v-if="isAdmin"
+  v-if="canViewRegistrationRequests"
   class="rounded-2xl bg-white p-6 shadow"
 >
   <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -430,8 +526,7 @@ onMounted(loadPage);
       </h2>
 
       <p class="mt-1 text-sm text-gray-600">
-        Admin can accept or reject teams before commencing the tournament.
-      </p>
+      Sports administrators can accept or reject teams before commencing the tournament.      </p>
     </div>
 
     <button
@@ -589,8 +684,8 @@ onMounted(loadPage);
           />
         </section>
 
-        <section
-  v-if="isAdmin"
+<section
+  v-if="canManageTournament"
   class="rounded-2xl bg-white p-6 shadow"
 >
   <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -644,7 +739,7 @@ onMounted(loadPage);
 </section>
 
         <section
-  v-if="isAdmin && tournament.status !== 'Completed' && tournament.status !== 'Cancelled'"
+  v-if="canCreateMatches"
   class="rounded-2xl bg-white p-6 shadow"
 >
   <div>
@@ -658,7 +753,7 @@ onMounted(loadPage);
   </div>
 
   <form
-    class="mt-4 grid gap-4 md:grid-cols-2"
+    class="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3"
     @submit.prevent="createManualMatch"
   >
     <div>
@@ -728,6 +823,30 @@ onMounted(loadPage);
     </div>
 
     <div>
+  <label class="block text-sm font-medium text-gray-700">
+    Referee
+  </label>
+
+  <select
+    v-model="manualMatchForm.referee"
+    class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+    required
+  >
+    <option value="" disabled>
+      Select referee
+    </option>
+
+    <option
+      v-for="referee in referees"
+      :key="referee.id"
+      :value="referee.id"
+    >
+      {{ referee.username }}
+    </option>
+  </select>
+</div>
+
+    <div>
       <label class="block text-sm font-medium text-gray-700">
         Date and Time
       </label>
@@ -760,8 +879,8 @@ onMounted(loadPage);
               </h2>
 
               <p class="mt-1 text-sm text-gray-600">
-                View matches and submit final scores.
-              </p>
+  View tournament matches, scores, and match details.
+</p>
             </div>
 
             <button
@@ -823,6 +942,13 @@ onMounted(loadPage);
                       {{ match.match_status }}
                     </span>
                   </p>
+
+                  <p class="mt-1 text-sm text-gray-600">
+                  Referee:
+                  <span class="font-semibold text-gray-800">
+                    {{ match.referee_username || "Not assigned" }}
+                  </span>
+                  </p>
                 </div>
 
                 <div class="rounded-xl bg-gray-100 px-6 py-4 text-center">
@@ -838,12 +964,12 @@ onMounted(loadPage);
 
               <div class="mt-4 flex justify-end">
   <RouterLink
-    :to="{ name: 'match', params: { id: match.id } }"
-    class="rounded-lg px-4 py-2 text-sm font-semibold text-white"
-    :class="isReferee ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-900 hover:bg-black'"
-  >
-    {{ isReferee ? "Add/Edit Scores" : "View Match Scores and Statistics" }}
-  </RouterLink>
+  :to="{ name: 'match', params: { id: match.id } }"
+  class="rounded-lg px-4 py-2 text-sm font-semibold text-white"
+  :class="canSubmitThisMatch(match) ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-900 hover:bg-black'"
+>
+  {{ canSubmitThisMatch(match) ? "Open Match Sheet" : "View Match Details" }}
+</RouterLink>
 </div>
             </article>
           </div>

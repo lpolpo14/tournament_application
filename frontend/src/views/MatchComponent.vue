@@ -2,16 +2,32 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute, RouterLink } from "vue-router";
 import instance_api from "@/services/api.js";
+import { useAuth } from "@/services/useAuth.js";
 
 const route = useRoute();
 const matchId = route.params.id;
 
+const { user, role, isAuthenticated, isLoaded, loadUser } = useAuth();
 // Temporary role placeholder.
 // Change to "referee" to test score editing.
 // Later this should come from real authentication.
-const currentRole = ref("referee");
 
-const isReferee = computed(() => currentRole.value === "referee");
+const isRefereeRole = computed(() => {
+  return isAuthenticated.value && role.value === "referee";
+});
+
+const canEditMatch = computed(() => {
+  if (!isRefereeRole.value) {
+    return false;
+  }
+
+  if (!match.value?.referee || !user.value?.id) {
+    return false;
+  }
+
+  return Number(match.value.referee) === Number(user.value.id);
+});
+
 
 const match = ref(null);
 const loading = ref(false);
@@ -180,6 +196,11 @@ async function fetchMatch() {
 }
 
 async function submitScore() {
+  if (!canEditMatch.value) {
+    error.value = "Only the assigned referee can submit this match score.";
+    return;
+  }
+
   loading.value = true;
   clearMessages();
 
@@ -201,6 +222,11 @@ async function submitScore() {
 
 
 async function savePlayerStatisticsForTeam(side) {
+  if (!canEditMatch.value) {
+    error.value = "Only the assigned referee can edit player statistics for this match.";
+    return;
+  }
+
   loading.value = true;
   clearMessages();
 
@@ -262,6 +288,10 @@ onMounted(async () => {
   clearMessages();
 
   try {
+    if (!isLoaded.value) {
+      await loadUser();
+    }
+
     await Promise.all([
       fetchMatch(),
       fetchMatchPlayers(),
@@ -323,7 +353,13 @@ onMounted(async () => {
       </section>
 
       <template v-if="!loading && match">
-        <section class="grid gap-4 md:grid-cols-4">
+        <section class="grid gap-4 md:grid-cols-5">
+          <article class="rounded-2xl bg-white p-5 shadow">
+            <p class="text-sm font-semibold text-gray-500">Referee</p>
+            <p class="mt-1 text-lg font-bold text-gray-900">
+            {{ match.referee_username || "Not assigned" }}
+            </p>
+          </article>
           <article class="rounded-2xl bg-white p-5 shadow">
             <p class="text-sm font-semibold text-gray-500">Team 1</p>
             <p class="mt-1 text-lg font-bold text-gray-900">
@@ -376,7 +412,7 @@ onMounted(async () => {
         </section>
 
         <section
-          v-if="isReferee"
+          v-if="canEditMatch"
           class="rounded-2xl bg-white p-6 shadow"
         >
           <h2 class="text-xl font-bold text-gray-900">
@@ -433,7 +469,7 @@ onMounted(async () => {
         </section>
 
         <section
-  v-if="isReferee"
+  v-if="canEditMatch"
   class="rounded-2xl bg-white p-6 shadow"
 >
   <h2 class="text-xl font-bold text-gray-900">
@@ -601,7 +637,7 @@ onMounted(async () => {
   </div>
 </section>
         <section
-  v-if="isReferee"
+  v-if="canEditMatch"
   class="rounded-2xl bg-white p-6 shadow"
 >
   <h2 class="text-xl font-bold text-gray-900">
@@ -778,7 +814,7 @@ onMounted(async () => {
 
           <p class="mt-1 text-sm text-gray-600">
             Visitors, team managers, and administrators can view the result and match information.
-            Only referees can edit scores.
+            Only the assigned referee can edit scores and player statistics.
           </p>
 
           <div class="mt-5 grid gap-4 md:grid-cols-3">
@@ -870,6 +906,26 @@ onMounted(async () => {
       </tbody>
     </table>
   </div>
+</section>
+        <section
+  v-if="isRefereeRole && !canEditMatch"
+  class="rounded-2xl bg-white p-6 shadow"
+>
+  <h2 class="text-xl font-bold text-gray-900">
+    Referee Access
+  </h2>
+
+  <p class="mt-1 text-sm text-gray-600">
+    You are signed in as a referee, but you are not assigned to this match.
+    You can view the match, but you cannot edit scores or statistics.
+  </p>
+
+  <p class="mt-3 text-sm text-gray-600">
+    Assigned referee:
+    <span class="font-semibold text-gray-900">
+      {{ match.referee_username || "Not assigned" }}
+    </span>
+  </p>
 </section>
       </template>
     </div>

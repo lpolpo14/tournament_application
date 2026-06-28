@@ -1,17 +1,23 @@
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from ..users.models import UserDetails
 from ..matches.models import Match, Stadium, PlayerMatchStatistics
 from ..teams.models import TeamMember
+
+User = get_user_model()
 
 
 class MatchReadSerializer(serializers.ModelSerializer):
     team1_name = serializers.CharField(source="team1.team_name", read_only=True)
     team2_name = serializers.CharField(source="team2.team_name", read_only=True)
     tournament_name = serializers.CharField(source="tournament.name", read_only=True)
-    player_statistics_count = serializers.IntegerField(source="player_statistics.count",read_only=True,)
+    player_statistics_count = serializers.IntegerField(source="player_statistics.count", read_only=True)
 
     stadium_name = serializers.CharField(source="stadium.name", read_only=True)
     stadium_city = serializers.CharField(source="stadium.city", read_only=True)
+
+    referee_username = serializers.CharField(source="referee.username", read_only=True)
 
     class Meta:
         model = Match
@@ -22,11 +28,13 @@ class MatchReadSerializer(serializers.ModelSerializer):
             "team1",
             "team1_name",
             "team2",
+            "team2_name",
             "player_statistics_count",
             "stadium",
             "stadium_name",
             "stadium_city",
-            "team2_name",
+            "referee",
+            "referee_username",
             "team1_score",
             "team2_score",
             "scheduled_date",
@@ -68,9 +76,21 @@ class MatchPatchSerializer(serializers.ModelSerializer):
         return attrs
 
 class MatchCreateSerializer(serializers.ModelSerializer):
+    referee = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(details__role=UserDetails.Role.REFEREE),
+        required=True,
+    )
+
     class Meta:
         model = Match
-        fields = ["tournament", "team1", "team2", "stadium", "scheduled_date",]
+        fields = [
+            "tournament",
+            "team1",
+            "team2",
+            "stadium",
+            "referee",
+            "scheduled_date",
+        ]
 
     def validate(self, attrs):
         team1 = attrs.get("team1")

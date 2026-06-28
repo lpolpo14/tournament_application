@@ -107,3 +107,25 @@ def me_view(request):
         "is_authenticated": True,
         "user": UserSerializer(request.user).data,
     })
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+from .models import UserDetails
+from .serializers import UserSerializer
+from .permissions import IsSportsAdmin
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsSportsAdmin])
+def referees_view(request):
+    referees = (
+        User.objects
+        .filter(details__role=UserDetails.Role.REFEREE)
+        .order_by("username")
+    )
+
+    return Response(UserSerializer(referees, many=True).data)
