@@ -7,10 +7,10 @@ def get_user_role(user):
     if not user or not user.is_authenticated:
         return None
 
-    if not hasattr(user, "profile"):
+    if not hasattr(user, "details"):
         return None
 
-    return user.profile.role
+    return user.details.role
 
 
 def is_sports_admin(user):
@@ -54,11 +54,17 @@ class IsTeamManagerOfTeam(BasePermission):
     Team managers can modify only their own teams.
     """
 
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and is_team_manager(request.user)
+
     def has_object_permission(self, request, view, obj):
         if request.method in SAFE_METHODS:
             return True
 
-        return obj.manager_id == request.user.id
+        return (
+            is_team_manager(request.user)
+            and obj.manager_id == request.user.id
+        )
 
 
 class IsAssignedReferee(BasePermission):

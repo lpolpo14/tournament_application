@@ -40,10 +40,12 @@ class TeamMemberAddSerializer(serializers.ModelSerializer):
 class TeamSerializer(serializers.ModelSerializer):
     members = TeamMemberSerializer(many=True, read_only=True)
     logo_url = serializers.SerializerMethodField()
+    manager_id = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Team
-        fields = ["id", "team_name", "sport_name", "logo_img", "logo_url" ,"members", "created_at"] # This is safer since we decide what can be viewed by VUE
-        read_only_fields = ["id", "created_at", "logo_url", "members"]
+        fields = ["id", "team_name", "manager_id", "sport_name", "logo_img", "logo_url" ,"members", "created_at"] # This is safer since we decide what can be viewed by VUE
+        read_only_fields = ["id", "created_at", "logo_url", "members", "manager_id"]
 
     def validate_logo_img(self, image):
         max_size = 2 * 1024 * 1024 # 2 MegaBytes

@@ -1,65 +1,26 @@
-// src/services/authService.js
-
 import instance_api from './api'
-
-let csrfToken = null
 
 export async function getCsrfCookie() {
   const response = await instance_api.get('/auth/csrf/')
-  csrfToken = response.data.csrfToken
-  return csrfToken
-}
-
-function csrfHeaders() {
-  return {
-    headers: {
-      'X-CSRFToken': csrfToken,
-    },
-  }
+  return response.data.csrfToken
 }
 
 export async function register(payload) {
-  if (!csrfToken) {
-    await getCsrfCookie()
-  }
-
-  const response = await instance_api.post(
-    '/auth/register/',
-    payload,
-    csrfHeaders(),
-  )
-
+  const response = await instance_api.post('/auth/register/', payload)
   return response.data
 }
 
 export async function login(username, password) {
-  if (!csrfToken) {
-    await getCsrfCookie()
-  }
-
-  const response = await instance_api.post(
-    '/auth/login/',
-    {
-      username,
-      password,
-    },
-    csrfHeaders(),
-  )
+  const response = await instance_api.post('/auth/login/', {
+    username,
+    password,
+  })
 
   return response.data
 }
 
 export async function logout() {
-  if (!csrfToken) {
-    await getCsrfCookie()
-  }
-
-  const response = await instance_api.post(
-    '/auth/logout/',
-    {},
-    csrfHeaders(),
-  )
-
+  const response = await instance_api.post('/auth/logout/', {})
   return response.data
 }
 

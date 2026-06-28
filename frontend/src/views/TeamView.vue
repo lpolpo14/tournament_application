@@ -3,8 +3,10 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { playerApi, teamApi } from '@/services/api.js'
 import StandingsTeamTable from "@/components/helpers/StandingsTeamTable.vue";
+import { useAuth } from '@/services/useAuth.js'
 
 const route = useRoute()
+const { user, role, isAuthenticated, loadUser } = useAuth()
 
 const team = ref(null)
 const availablePlayers = ref([])
@@ -160,6 +162,11 @@ const deletePlayerError = ref('')
 const deletePlayerSuccess = ref('')
 
 async function removePlayerFromTeam(member) {
+  if (!canEditTeam.value) {
+    deletePlayerError.value = 'You can only remove players from teams that you manage.'
+    return
+  }
+
   deletePlayerError.value = ''
   deletePlayerSuccess.value = ''
 
@@ -183,12 +190,20 @@ const editForm = ref({
 
 const shirtNumbers = ref({})
 
-// Temporary ownership placeholder.
-// Later this should check if the logged-in user owns this team.
-const isOwner = ref(true)
-
 const canEditTeam = computed(() => {
-  return isOwner.value
+  if (!isAuthenticated.value) {
+    return false
+  }
+
+  if (role.value !== 'team_manager') {
+    return false
+  }
+
+  if (!team.value?.manager_id || !user.value?.id) {
+    return false
+  }
+
+  return Number(team.value.manager_id) === Number(user.value.id)
 })
 
 const positions = [
@@ -328,6 +343,11 @@ function formatApiErrors(errorData) {
 }
 
 async function updateTeam() {
+  if (!canEditTeam.value) {
+    editError.value = 'You can only edit teams that you manage.'
+    return
+  }
+
   error.value = ''
   editError.value = ''
   success.value = ''
@@ -352,12 +372,16 @@ async function updateTeam() {
     logoPreview.value = ''
   } catch (err) {
     console.log(err.response?.data)
-
     editError.value = formatApiErrors(err.response?.data)
   }
 }
 
 async function addPlayerToTeam(player) {
+  if (!canEditTeam.value) {
+    addPlayerError.value = 'You can only add players to teams that you manage.'
+    return
+  }
+
   addPlayerError.value = ''
   addPlayerSuccess.value = ''
 
@@ -384,10 +408,19 @@ async function addPlayerToTeam(player) {
 }
 
 onMounted(async () => {
+  await loadUser()
   await loadTeam()
-  await loadAvailablePlayers()
+
+  if (!canEditTeam.value) {
+    editMode.value = false
+  }
+
   await loadTeamMatches()
   await loadTournamentStandings()
+
+  if (canEditTeam.value) {
+    await loadAvailablePlayers()
+  }
 })
 </script>
 
