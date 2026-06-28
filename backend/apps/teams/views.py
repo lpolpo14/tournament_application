@@ -3,6 +3,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 
@@ -12,6 +13,7 @@ from ..matches.models import Match, PlayerMatchStatistics
 from ..matches.serializers import MatchReadSerializer
 from ..tournaments.services import calculate_tournament_standings
 from ..tournaments.models import Tournament
+from ..users.permissions import IsTeamManager, DenyAll, IsTeamManagerOfTeam
 
 
 # Create your views here.
@@ -23,9 +25,36 @@ class TeamViewSet(viewsets.ModelViewSet):
     ordering_fields = ["team_name", "sport_name", "created_at"]
     parser_classes = [JSONParser, MultiPartParser, FormParser]
 
+    def get_permissions(self):
+        if self.action in [
+            "list",
+            "retrieve",
+            "matches",
+            "tournament_standings",
+        ]:
+            return [AllowAny()]
+
+        if self.action == "create":
+            return [IsAuthenticated(), IsTeamManager()]
+
+        if self.action in [
+            "update",
+            "partial_update",
+            "destroy",
+            "add_player",
+            "remove_player",
+        ]:
+            return [IsAuthenticated(), IsTeamManagerOfTeam()]
+
+        return [DenyAll()]
+
+    def perform_create(self, serializer):
+        serializer.save(manager=self.request.user)
+
     @action(detail=True, methods=["post"], url_path="add-player")
     def add_player(self, request, pk=None):
         team = self.get_object()
+        self.check_object_permissions(request, team)
 
         serializer = addPlayerToTeamSerializer(data=request.data, context={"team": team})
 
@@ -43,6 +72,7 @@ class TeamViewSet(viewsets.ModelViewSet):
     def remove_player(self, request, pk=None, member_id=None):
         team = self.get_object()
 
+        self.check_object_permissions(request, team)
         try:
             team_member = TeamMember.objects.get(
                 id=member_id,

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -62,6 +63,14 @@ class PlayerMatchStatistics(models.Model):
 
     team = models.ForeignKey(
         "teams.Team",on_delete=models.CASCADE,related_name="player_match_statistics",
+    )
+
+    referee = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_matches",
     )
 
     goals = models.PositiveIntegerField(default=0)

@@ -5,6 +5,8 @@ from random import random
 from django.shortcuts import render, get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from .serializers import TournamentParticipationSerializer
@@ -13,6 +15,7 @@ from ..tournaments.models import Tournament, TournamentParticipation
 from ..matches.models import Match, Stadium
 from ..tournaments.serializers import TournamentSerializer
 from .services import  calculate_tournament_standings
+from ..users.permissions import IsTeamManager, IsSportsAdmin, DenyAll
 
 # Create your views here.
 
@@ -23,6 +26,23 @@ In the future it is suggested that we create a Standings model and save it there
 class TournamentViewSet(viewsets.ModelViewSet):
     queryset = Tournament.objects.prefetch_related("teams", "participations__team").all()
     serializer_class = TournamentSerializer
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve", "standings"]:
+            return [AllowAny()]
+
+        if self.action == "request_registration":
+            return [IsAuthenticated(), IsTeamManager()]
+
+        if self.action in [
+            "create",
+            "registrations",
+            "commence",
+            "generate_matches",
+        ]:
+            return [IsAuthenticated(), IsSportsAdmin()]
+
+        return [DenyAll()]
 
     @action(detail=True, methods=["post"], url_path="request-registration")
     def request_registration(self, request, pk=None):
@@ -43,6 +63,11 @@ class TournamentViewSet(viewsets.ModelViewSet):
             )
 
         team = get_object_or_404(Team, pk=team_id)
+
+        if team.manager_id != request.user.id:
+            raise PermissionDenied(
+                "You can only request tournament registration for your own team."
+            )
 
         participation, created = TournamentParticipation.objects.get_or_create(
             tournament=tournament,
@@ -201,6 +226,7 @@ class TournamentParticipationViewSet(viewsets.ReadOnlyModelViewSet):
     ).all()
 
     serializer_class = TournamentParticipationSerializer
+    permission_classes = [IsSportsAdmin]
 
     @action(detail=True, methods=["post"], url_path="accept")
     def accept(self, request, pk=None):

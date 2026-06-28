@@ -11,6 +11,7 @@ import LoginView from "@/views/LoginView.vue";
 import StadiumsView from "@/views/StadiumsView.vue";
 import MatchComponent from "@/views/MatchComponent.vue";
 import PlayerView from "@/views/PlayerView.vue";
+import RegisterView from "@/views/RegisterView.vue";
 
 // Based on https://github.com/fussionlab/VueJs-Django
 const routes = [
@@ -18,6 +19,16 @@ const routes = [
         path: '/',
         name: 'home',
         component: HomeView
+    },
+    {
+        path: '/login',
+        name: 'login',
+        component: LoginView
+    },
+    {
+        path: '/register',
+        name: 'register',
+        component: RegisterView
     },
     {
         path: '/teams',

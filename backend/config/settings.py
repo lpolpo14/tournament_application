@@ -19,6 +19,13 @@ CSRF_TRUSTED_ORIGINS = [
     os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:5173"),
 ]
 
+SESSION_COOKIE_HTTPONLY = True # For XSS
+SESSION_COOKIE_SECURE = False   # for production turn True
+CSRF_COOKIE_SECURE = False  # for production turn True
+
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -72,9 +79,23 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.AllowAny",
+    ],
+}
+
 CORS_ALLOWED_ORIGINS = [
     os.environ.get("DJANGO_CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
 ]
+CORS_ALLOW_CREDENTIALS = True
+
+
+# For XSS
+SECURE_CONTENT_TYPE_NOSNIFF = True
 
 
 MEDIA_URL = '/media/'

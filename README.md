@@ -32,12 +32,12 @@ This project is being developed for the course 'Information Systems on the Inter
 
 ### User Functionality
 
-- [ ] Create user roles
-- [ ] Add Administrator role
-- [ ] Add Team Manager role
-- [ ] Add Referee role
-- [ ] Add visitor (public view) role
-- [ ] Add proper restrictions based on roles
+- [x] Create user roles
+- [x] Add Administrator role
+- [x] Add Team Manager role
+- [x] Add Referee role
+- [x] Add visitor (public view) role
+- [x] Add proper restrictions based on roles
 
 ### Security
 
@@ -45,6 +45,7 @@ This project is being developed for the course 'Information Systems on the Inter
 - [x] Team Logos Security (OWASP + Django + uuid)
 - [ ] CSRF Headers
 - [ ] Session Management
+- [ ] Encrypt Password
 - [ ] Authentication \& Authorization
 
 ### Miscellaneous

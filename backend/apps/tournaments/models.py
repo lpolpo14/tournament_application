@@ -73,13 +73,3 @@ class TournamentParticipation(models.Model):
             )
         ]
 
-"""
-This might not be needed.
-class TournamentMatch(models.Model):
-    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE)
-    match = models.ForeignKey('matches.Match', on_delete=models.CASCADE) # String imports are best practice.
-    registration_date = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f'{self.match.__str__()} of {self.tournament.name}'
-"""

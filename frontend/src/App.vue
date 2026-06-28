@@ -1,6 +1,14 @@
 <script setup>
 import Header from "@/components/layouts/Header.vue";
 import Footer from "@/components/layouts/Footer.vue";
+import {useAuth} from "@/services/useAuth.js";
+import {onMounted} from "vue";
+
+const {loadUser} = useAuth()
+
+onMounted(async() => {
+  await loadUser()
+})
 </script>
 
 <template>

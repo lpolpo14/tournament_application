@@ -3,6 +3,7 @@ from pathlib import Path
 
 from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
 from django.db import models
+from django.conf import settings
 from django.db.models import CheckConstraint, Q, UniqueConstraint
 
 
@@ -50,6 +51,10 @@ class Team(models.Model):
     """
     team_name = models.CharField(max_length=100)
     sport_name = models.CharField(max_length=100)
+
+    manager = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                related_name='managed_teams', null=True, blank=True)
+
     logo_img = models.ImageField(upload_to=team_logo_upload_path,
                                  null=True,
                                  blank=True,

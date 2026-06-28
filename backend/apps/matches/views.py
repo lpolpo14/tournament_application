@@ -2,6 +2,8 @@ from django.db.models import Q
 from django.shortcuts import render
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from .serializers import MatchPatchSerializer
@@ -9,6 +11,9 @@ from ..matches.serializers import (MatchReadSerializer, MatchCreateSerializer,
                                    MatchPatchSerializer, StadiumSerializer)
 from ..matches.models import Match, Stadium
 from ..teams.models import TeamMember
+from ..users.permissions import  IsSportsAdmin, \
+    IsReferee, IsAssignedReferee, DenyAll, CanEditPlayerMatchStatistics
+
 
 # Create your views here.
 
@@ -18,7 +23,7 @@ class MatchViewSet(viewsets.ModelViewSet):
     ordering_fields = ["scheduled_date"]
 
     def get_serializer_class(self):
-        if self.action in ["list", "retrieve"]:
+        if self.action in ["list", "retrieve", "players"]:
             return MatchReadSerializer
         if self.action == "create":
             return MatchCreateSerializer
@@ -37,6 +42,19 @@ class MatchViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(tournament_id=tournament_id)
 
         return queryset
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve", "players"]:
+            return [AllowAny()]
+
+        if self.action == "create":
+            return [IsAuthenticated(), IsSportsAdmin()]
+
+        if self.action == "submit_score":
+            return [IsAuthenticated(), IsReferee(), IsAssignedReferee()]
+
+        # Blocks update, partial_update, destroy.
+        return [DenyAll()]
 
     @action(detail=True, methods=["get"], url_path="players")
     def players(self, request, pk=None):
@@ -79,6 +97,8 @@ class MatchViewSet(viewsets.ModelViewSet):
     def submit_score(self, request, pk=None):
         match = self.get_object()
 
+        self.check_object_permissions(request, match) # Amazing function!
+
         serializer = MatchPatchSerializer(match, data=request.data, partial=True)
 
         serializer.is_valid(raise_exception=True)
@@ -90,6 +110,16 @@ class MatchViewSet(viewsets.ModelViewSet):
 class StadiumViewSet(viewsets.ModelViewSet):
     queryset = Stadium.objects.all().order_by("name")
     serializer_class = StadiumSerializer
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            return [AllowAny()]
+
+        if self.action == "create":
+            return [IsAuthenticated(), IsSportsAdmin()]
+
+        # Block else.
+        return [DenyAll()]
 
 from ..matches.models import Match, Stadium, PlayerMatchStatistics
 from ..matches.serializers import (
@@ -106,6 +136,12 @@ class PlayerMatchStatisticsViewSet(viewsets.ModelViewSet):
     ).all()
     serializer_class = PlayerMatchStatisticsSerializer
 
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            return [AllowAny()]
+
+        return [IsAuthenticated(), CanEditPlayerMatchStatistics()]
+
     def get_queryset(self):
         queryset = super().get_queryset()
         match_id = self.request.query_params.get("match")
@@ -119,3 +155,22 @@ class PlayerMatchStatisticsViewSet(viewsets.ModelViewSet):
         if player_id:
             queryset = queryset.filter(player_id=player_id)
         return queryset
+
+    def perform_create(self, serializer):
+        match = serializer.validated_data["match"]
+
+        if match.referee_id != self.request.user.id:
+            raise PermissionDenied(
+                "You can only add statistics for matches assigned to you."
+            )
+
+        serializer.save()
+
+    def perform_update(self, serializer):
+        statistic = self.get_object()
+        self.check_object_permissions(self.request, statistic)
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self.check_object_permissions(self.request, instance)
+        instance.delete()
