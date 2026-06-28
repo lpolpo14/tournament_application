@@ -13,7 +13,7 @@ from ..matches.models import Match, PlayerMatchStatistics
 from ..matches.serializers import MatchReadSerializer
 from ..tournaments.services import calculate_tournament_standings
 from ..tournaments.models import Tournament
-from ..users.permissions import IsTeamManager, DenyAll, IsTeamManagerOfTeam
+from ..users.permissions import IsTeamManager, DenyAll, IsTeamManagerOfTeam, is_team_manager
 
 
 # Create your views here.
@@ -33,6 +33,9 @@ class TeamViewSet(viewsets.ModelViewSet):
             "tournament_standings",
         ]:
             return [AllowAny()]
+
+        if self.action == "mine":
+            return [IsAuthenticated()]
 
         if self.action == "create":
             return [IsAuthenticated(), IsTeamManager()]
@@ -157,6 +160,24 @@ class TeamViewSet(viewsets.ModelViewSet):
             })
 
         return Response(result)
+
+    @action(detail=False, methods=["get"], url_path="mine")
+    def mine(self, request):
+        if not request.user.is_authenticated:
+            return Response([], status=200)
+
+        if not is_team_manager(request.user):
+            return Response([], status=200)
+
+        teams = (
+            Team.objects
+            .prefetch_related("members__player")
+            .filter(manager=request.user)
+            .order_by("team_name")
+        )
+
+        serializer = self.get_serializer(teams, many=True)
+        return Response(serializer.data)
 
 class PlayerViewSet(viewsets.ModelViewSet):
     serializer_class = PlayerSerializer

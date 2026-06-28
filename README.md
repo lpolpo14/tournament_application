@@ -27,8 +27,9 @@ This project is being developed for the course 'Information Systems on the Inter
 - [x] Add random generation of matches within a tournament
 - [x] Add player statistics
 - [x] View player statistics
-- [ ] Add Authentication
+- [x] Add Authentication
 - [x] Ensure Mobile Compatible UI 
+- [ ] Referee can view upcoming matches
 
 ### User Functionality
 
@@ -44,8 +45,8 @@ This project is being developed for the course 'Information Systems on the Inter
 - [ ] CSP Headers
 - [x] Team Logos Security (OWASP + Django + uuid)
 - [ ] CSRF Headers
-- [ ] Session Management
-- [ ] Encrypt Password
+- [x] Session Management
+- [x] Encrypt Password
 - [ ] Authentication \& Authorization
 
 ### Miscellaneous

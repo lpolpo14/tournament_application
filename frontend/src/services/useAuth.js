@@ -1,5 +1,3 @@
-// src/composables/useAuth.js
-
 import { computed, ref } from 'vue'
 import {
   getMe,
@@ -14,15 +12,7 @@ const isLoaded = ref(false)
 const isAuthenticated = computed(() => !!user.value)
 
 const role = computed(() => {
-  if (!user.value?.role) return 'visitor'
-
-  const roleMap = {
-    sports_admin: 'sports_admin',
-    team_manager: 'team_manager',
-    referee: 'referee',
-  }
-
-  return roleMap[user.value.role] || 'visitor'
+  return user.value?.role || 'visitor'
 })
 
 async function loadUser() {

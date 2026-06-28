@@ -66,5 +66,5 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ["id", "username", "email", "role"]
 
     def get_role(self, obj):
-        profile = getattr(obj, "profile", None)
+        profile = getattr(obj, "details", None)
         return profile.role if profile else None

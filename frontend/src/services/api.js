@@ -12,16 +12,6 @@ const instance_api = axios.create({
 });
 
 
-instance_api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access')
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-
-  return config
-})
-
 export default instance_api;
 
 export const playerApi = {
@@ -44,6 +34,10 @@ export const teamApi = {
 
   getOne(id) {
     return instance_api.get(`/teams/${id}/`)
+  },
+
+  getMine() {
+    return instance_api.get('/teams/mine/')
   },
 
   create(data) {

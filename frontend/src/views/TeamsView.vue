@@ -1,6 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { teamApi } from '@/services/api.js'
+import { useAuth } from '@/services/useAuth.js'
+
+const { role, isAuthenticated, loadUser } = useAuth()
 
 const teams = ref([])
 const myTeams = ref([])
@@ -16,18 +19,12 @@ const teamForm = ref({
   sport_name: '',
 })
 
-// Authentication Placeholder
-const currentUser = ref({
-  isAuthenticated: true,
-  role: 'team_organizer',
-})
-
 function getTeamInitial(team) {
   return team.team_name?.charAt(0)?.toUpperCase() ?? '?'
 }
 
 const canManageTeams = computed(() => {
-  return currentUser.value.isAuthenticated && currentUser.value.role === 'team_organizer'
+  return isAuthenticated.value && role.value === 'team_manager'
 })
 
 async function loadTeams() {
@@ -45,7 +42,10 @@ async function loadTeams() {
 }
 
 async function loadMyTeams() {
-  if (!canManageTeams.value) return
+  if (!canManageTeams.value) {
+    myTeams.value = []
+    return
+  }
 
   myTeamsLoading.value = true
 
@@ -53,13 +53,18 @@ async function loadMyTeams() {
     const response = await teamApi.getMine()
     myTeams.value = response.data
   } catch (err) {
-    myTeams.value = teams.value
+    myTeams.value = []
   } finally {
     myTeamsLoading.value = false
   }
 }
 
 async function createTeam() {
+  if (!canManageTeams.value) {
+    error.value = 'You must be signed in as a team manager to create teams.'
+    return
+  }
+
   error.value = ''
   successfulAdd.value = ''
 
@@ -76,15 +81,17 @@ async function createTeam() {
     await loadTeams()
     await loadMyTeams()
   } catch (err) {
-    error.value = 'Could not add team.'
+    error.value = err.response?.data?.detail || 'Could not add team.'
   }
 }
 
 onMounted(async () => {
+  await loadUser()
   await loadTeams()
   await loadMyTeams()
 })
 </script>
+
 
 <template>
   <main class="min-h-screen bg-gray-50 px-6 py-10">

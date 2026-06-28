@@ -11,7 +11,7 @@ class UserDetails(models.Model):
         REFEREE = 'referee', "Referee"
         TEAM_MANAGER = 'team_manager', "Team Manager"
 
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='user_details')
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='details')
 
     role = models.CharField(max_length=20, choices=Role.choices)
 
