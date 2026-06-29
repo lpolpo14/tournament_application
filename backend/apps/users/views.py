@@ -5,7 +5,7 @@ import json
 from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
-from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie, csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 from rest_framework.exceptions import ValidationError
 
@@ -19,7 +19,7 @@ def csrf(request):
 
 
 @require_POST
-@csrf_protect # Blocks fake website requests.
+@csrf_exempt
 def register_view(request):
     try:
         data = json.loads(request.body)
@@ -43,7 +43,7 @@ def register_view(request):
     )
 
 @require_POST
-@csrf_protect
+@csrf_protect # Blocks fake website requests.
 def login_view(request):
     try:
         data = json.loads(request.body)
