@@ -60,6 +60,9 @@ class MatchViewSet(viewsets.ModelViewSet):
         if self.action in ["list", "retrieve", "players"]:
             return [AllowAny()]
 
+        if self.action == "assigned_to_me":
+            return [IsAuthenticated(), IsReferee()]
+
         if self.action in ["create", "admin_update", "cancel"]:
             return [IsAuthenticated(), IsSportsAdmin()]
 
@@ -67,6 +70,26 @@ class MatchViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated(), IsReferee(), IsAssignedReferee()]
 
         return [DenyAll()]
+
+    @action(detail=False, methods=["get"], url_path="assigned-to-me")
+    def assigned_to_me(self, request):
+        matches = (
+            Match.objects
+            .select_related(
+                "tournament",
+                "team1",
+                "team2",
+                "stadium",
+                "referee",
+            )
+            .filter(referee=request.user)
+            .exclude(match_status=Match.Status.COMPLETED)
+            .exclude(match_status=Match.Status.CANCELLED)
+            .order_by("scheduled_date")
+        )
+
+        serializer = MatchReadSerializer(matches, many=True)
+        return Response(serializer.data)
 
     @action(detail=True, methods=["patch"], url_path="admin-update")
     def admin_update(self, request, pk=None):

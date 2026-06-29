@@ -162,11 +162,18 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        unfinished_matches = matches.exclude(match_status=Match.Status.COMPLETED)
+        unfinished_matches = matches.exclude(
+            match_status__in=[ # Neat!
+                Match.Status.COMPLETED,
+                Match.Status.CANCELLED,
+            ]
+        )
 
         if unfinished_matches.exists():
             return Response(
-                {"detail": "Tournament can only be completed when all matches are completed."},
+                {
+                    "detail": "Tournament can only be completed when all matches are completed."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

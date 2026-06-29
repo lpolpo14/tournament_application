@@ -64,9 +64,15 @@ const canCompleteTournament = computed(() => {
     canManageTournament.value &&
     tournament.value?.status === "Ongoing" &&
     matches.value.length > 0 &&
-    matches.value.every((match) => match.match_status === "Completed")
-  );
-});
+    matches.value.every((match) => {
+      return (
+        match.match_status === "Completed" ||
+        match.match_status === "Cancelled"
+      )
+    }) &&
+    matches.value.some((match) => match.match_status === "Completed")
+  )
+})
 
 const canMarkTournamentOngoing = computed(() => {
   return (

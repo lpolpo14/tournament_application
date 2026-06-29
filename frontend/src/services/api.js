@@ -104,3 +104,9 @@ export const userApi = {
     return instance_api.get('/auth/referees/')
   },
 }
+
+export const matchApi = {
+  getAssignedToMe() {
+    return instance_api.get('/matches/assigned-to-me/')
+  },
+}
