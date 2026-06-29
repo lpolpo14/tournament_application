@@ -15,13 +15,27 @@ from pathlib import Path
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
 
+def env_list(name, default=""):
+    value = os.environ.get(name, default)
+
+    return [
+        item.strip()
+        for item in value.split(",")
+        if item.strip()
+    ]
+
+ALLOWED_HOSTS = [os.environ.get("DJANGO_ALLOWED_HOSTS", "")]
 CSRF_TRUSTED_ORIGINS = [
     os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:5173"),
 ]
+CORS_ALLOWED_ORIGINS = [
+    os.environ.get("DJANGO_CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
+]
 
 SESSION_COOKIE_HTTPONLY = True # For XSS
-SESSION_COOKIE_SECURE = False   # for production turn True
-CSRF_COOKIE_SECURE = False  # for production turn True
+
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
@@ -47,7 +61,6 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
 
 # Uncomment those when deploying
 VITE_API_BASE_URL=os.environ.get("VITE_API_BASE_URL")
-ALLOWED_HOSTS = [os.environ.get("DJANGO_ALLOWED_HOSTS", "")]
 
 
 # Application definition
@@ -88,9 +101,6 @@ REST_FRAMEWORK = {
     ],
 }
 
-CORS_ALLOWED_ORIGINS = [
-    os.environ.get("DJANGO_CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
-]
 CORS_ALLOW_CREDENTIALS = True
 
 
