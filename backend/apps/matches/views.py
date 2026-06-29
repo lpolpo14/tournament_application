@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from .serializers import MatchPatchSerializer
 from ..matches.serializers import (MatchReadSerializer, MatchCreateSerializer,
-                                   MatchPatchSerializer, StadiumSerializer)
+                                   MatchPatchSerializer, StadiumSerializer, MatchAdminUpdateSerializer)
 from ..matches.models import Match, Stadium
 from ..teams.models import TeamMember
 from ..users.permissions import  IsSportsAdmin, \
@@ -31,8 +31,13 @@ class MatchViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ["list", "retrieve", "players"]:
             return MatchReadSerializer
+
         if self.action == "create":
             return MatchCreateSerializer
+
+        if self.action == "admin_update":
+            return MatchAdminUpdateSerializer
+
         return MatchPatchSerializer
 
     def get_queryset(self):
@@ -55,14 +60,44 @@ class MatchViewSet(viewsets.ModelViewSet):
         if self.action in ["list", "retrieve", "players"]:
             return [AllowAny()]
 
-        if self.action == "create":
+        if self.action in ["create", "admin_update", "cancel"]:
             return [IsAuthenticated(), IsSportsAdmin()]
 
         if self.action == "submit_score":
             return [IsAuthenticated(), IsReferee(), IsAssignedReferee()]
 
-        # Blocks update, partial_update, destroy.
         return [DenyAll()]
+
+    @action(detail=True, methods=["patch"], url_path="admin-update")
+    def admin_update(self, request, pk=None):
+        match = self.get_object()
+
+        serializer = MatchAdminUpdateSerializer(
+            match,
+            data=request.data,
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+        updated_match = serializer.save()
+
+        read_serializer = MatchReadSerializer(updated_match)
+        return Response(read_serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="cancel")
+    def cancel(self, request, pk=None):
+        match = self.get_object()
+
+        if match.match_status == Match.Status.COMPLETED:
+            return Response(
+                {"detail": "Completed matches cannot be cancelled."},
+                status=400,
+            )
+
+        match.match_status = Match.Status.CANCELLED
+        match.save(update_fields=["match_status"])
+
+        serializer = MatchReadSerializer(match)
+        return Response(serializer.data)
 
     @action(detail=True, methods=["get"], url_path="players")
     def players(self, request, pk=None):

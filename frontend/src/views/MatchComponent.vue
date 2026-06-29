@@ -16,6 +16,56 @@ const isRefereeRole = computed(() => {
   return isAuthenticated.value && role.value === "referee";
 });
 
+const isSportsAdminRole = computed(() => {
+  return isAuthenticated.value && role.value === "sports_admin";
+});
+
+const canAdminEditMatch = computed(() => {
+  return (
+    isSportsAdminRole.value &&
+    match.value &&
+    match.value.match_status !== "Completed"
+  );
+});
+
+const stadiums = ref([]);
+const referees = ref([]);
+
+const adminMatchForm = ref({
+  stadium: "",
+  referee: "",
+  scheduled_date: "",
+});
+
+function toDatetimeLocal(value) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+
+  return date.toISOString().slice(0, 16);
+}
+
+function toApiDateTime(datetimeLocalValue) {
+  if (!datetimeLocalValue) {
+    return null;
+  }
+
+  return new Date(datetimeLocalValue).toISOString();
+}
+
+async function fetchStadiums() {
+  const response = await instance_api.get("/stadiums/");
+  stadiums.value = normalizeList(response.data);
+}
+
+async function fetchReferees() {
+  const response = await instance_api.get("/auth/referees/");
+  referees.value = normalizeList(response.data);
+}
+
 const canEditMatch = computed(() => {
   if (!isRefereeRole.value) {
     return false;
@@ -176,6 +226,69 @@ function stadiumLabel() {
   return "No stadium assigned";
 }
 
+
+async function updateMatchSettings() {
+  if (!canAdminEditMatch.value) {
+    error.value = "Only sports administrators can edit match settings.";
+    return;
+  }
+
+  loading.value = true;
+  clearMessages();
+
+  try {
+    const response = await instance_api.patch(
+      `/matches/${matchId}/admin-update/`,
+      {
+        stadium: adminMatchForm.value.stadium,
+        referee: adminMatchForm.value.referee,
+        scheduled_date: toApiDateTime(adminMatchForm.value.scheduled_date),
+      }
+    );
+
+    match.value = response.data;
+
+    adminMatchForm.value = {
+      stadium: response.data.stadium ?? "",
+      referee: response.data.referee ?? "",
+      scheduled_date: toDatetimeLocal(response.data.scheduled_date),
+    };
+
+    success.value = "Match settings updated successfully.";
+  } catch (err) {
+    error.value = extractError(err);
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function cancelMatch() {
+  if (!canAdminEditMatch.value) {
+    error.value = "Only sports administrators can cancel matches.";
+    return;
+  }
+
+  const confirmed = window.confirm("Are you sure you want to cancel this match?");
+
+  if (!confirmed) {
+    return;
+  }
+
+  loading.value = true;
+  clearMessages();
+
+  try {
+    const response = await instance_api.post(`/matches/${matchId}/cancel/`);
+
+    match.value = response.data;
+    success.value = "Match cancelled successfully.";
+  } catch (err) {
+    error.value = extractError(err);
+  } finally {
+    loading.value = false;
+  }
+}
+
 async function fetchMatch() {
   loading.value = true;
   clearMessages();
@@ -183,6 +296,12 @@ async function fetchMatch() {
   try {
     const response = await instance_api.get(`/matches/${matchId}/`);
     match.value = response.data;
+
+    adminMatchForm.value = {
+        stadium: response.data.stadium ?? "",
+        referee: response.data.referee ?? "",
+        scheduled_date: toDatetimeLocal(response.data.scheduled_date),
+    };
 
     scoreForm.value = {
       team1_score: response.data.team1_score ?? "",
@@ -297,6 +416,13 @@ onMounted(async () => {
       fetchMatchPlayers(),
       fetchPlayerStatistics(),
     ]);
+
+    if (isSportsAdminRole.value) {
+      await Promise.all([
+        fetchStadiums(),
+        fetchReferees(),
+      ]);
+    }
   } catch (err) {
     error.value = extractError(err);
   } finally {
@@ -410,6 +536,108 @@ onMounted(async () => {
             </p>
           </div>
         </section>
+
+        <section
+  v-if="canAdminEditMatch"
+  class="rounded-2xl bg-white p-6 shadow"
+>
+  <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">
+        Sports Admin Match Settings
+      </h2>
+
+      <p class="mt-1 text-sm text-gray-600">
+        Change the referee, stadium, or scheduled date. Scores remain controlled by the assigned referee.
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+      :disabled="loading"
+      @click="cancelMatch"
+    >
+      Cancel Match
+    </button>
+  </div>
+
+  <form
+    class="mt-5 grid gap-4 md:grid-cols-3"
+    @submit.prevent="updateMatchSettings"
+  >
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Stadium
+      </label>
+
+      <select
+        v-model="adminMatchForm.stadium"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+        required
+      >
+        <option value="" disabled>
+          Select stadium
+        </option>
+
+        <option
+          v-for="stadium in stadiums"
+          :key="stadium.id"
+          :value="stadium.id"
+        >
+          {{ stadium.name }} - {{ stadium.city }}
+        </option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Referee
+      </label>
+
+      <select
+        v-model="adminMatchForm.referee"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+        required
+      >
+        <option value="" disabled>
+          Select referee
+        </option>
+
+        <option
+          v-for="referee in referees"
+          :key="referee.id"
+          :value="referee.id"
+        >
+          {{ referee.username }}
+        </option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">
+        Scheduled Date
+      </label>
+
+      <input
+        v-model="adminMatchForm.scheduled_date"
+        type="datetime-local"
+        class="mt-1 w-full rounded-lg border border-gray-300 p-3"
+        required
+      />
+    </div>
+
+    <div class="md:col-span-3">
+      <button
+        type="submit"
+        class="rounded-lg bg-green-600 px-5 py-3 font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+        :disabled="loading"
+      >
+        Save Match Settings
+      </button>
+    </div>
+  </form>
+</section>
 
         <section
           v-if="canEditMatch"

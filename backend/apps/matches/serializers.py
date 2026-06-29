@@ -75,6 +75,31 @@ class MatchPatchSerializer(serializers.ModelSerializer):
 
         return attrs
 
+
+class MatchAdminUpdateSerializer(serializers.ModelSerializer):
+    referee = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(details__role=UserDetails.Role.REFEREE),
+        required=True,
+    )
+
+    class Meta:
+        model = Match
+        fields = [
+            "stadium",
+            "referee",
+            "scheduled_date",
+        ]
+
+    def validate(self, attrs):
+        match = self.instance
+
+        if match and match.match_status == Match.Status.COMPLETED:
+            raise serializers.ValidationError(
+                "Completed matches cannot be edited by the sports administrator."
+            )
+
+        return attrs
+
 class MatchCreateSerializer(serializers.ModelSerializer):
     referee = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(details__role=UserDetails.Role.REFEREE),

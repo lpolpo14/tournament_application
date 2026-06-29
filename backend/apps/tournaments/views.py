@@ -41,10 +41,15 @@ class TournamentViewSet(viewsets.ModelViewSet):
             "registrations",
             "commence",
             "generate_matches",
+            "complete",
+            "cancel",
+            "mark_ongoing",
         ]:
             return [IsAuthenticated(), IsSportsAdmin()]
 
         return [DenyAll()]
+
+
 
     @action(detail=True, methods=["post"], url_path="request-registration")
     def request_registration(self, request, pk=None):
@@ -144,6 +149,70 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 "tournament": serializer.data,
             }
         )
+
+    @action(detail=True, methods=["post"], url_path="complete")
+    def complete(self, request, pk=None):
+        tournament = self.get_object()
+
+        matches = tournament.tournament_matches.all()
+
+        if not matches.exists():
+            return Response(
+                {"detail": "Tournament cannot be completed because it has no matches."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        unfinished_matches = matches.exclude(match_status=Match.Status.COMPLETED)
+
+        if unfinished_matches.exists():
+            return Response(
+                {"detail": "Tournament can only be completed when all matches are completed."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        tournament.status = Tournament.Status.COMPLETED
+        tournament.save(update_fields=["status"])
+
+        serializer = TournamentSerializer(tournament)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="cancel")
+    def cancel(self, request, pk=None):
+        tournament = self.get_object()
+
+        if tournament.status == Tournament.Status.COMPLETED:
+            return Response(
+                {"detail": "Completed tournaments cannot be cancelled."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        tournament.status = Tournament.Status.CANCELLED
+        tournament.save(update_fields=["status"])
+
+        serializer = TournamentSerializer(tournament)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="mark-ongoing")
+    def mark_ongoing(self, request, pk=None):
+        tournament = self.get_object()
+
+        if tournament.status != Tournament.Status.CANCELLED:
+            return Response(
+                {"detail": "Only cancelled tournaments can be marked as ongoing again."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if tournament.teams.count() < 2:
+            return Response(
+                {"detail": "Tournament must have at least two teams to be ongoing."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        tournament.status = Tournament.Status.ONGOING
+        tournament.save(update_fields=["status"])
+
+        serializer = TournamentSerializer(tournament)
+        return Response(serializer.data)
 
     @action(detail=True, methods=["post"], url_path="generate-matches")
     def generate_matches(self, request, pk=None):

@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute, RouterLink } from "vue-router";
 import instance_api, { teamApi, userApi } from "@/services/api.js";
 import { useAuth } from "@/services/useAuth.js";
+import StandingsTable from "@/components/helpers/StandingsTable.vue";
 
 const route = useRoute();
 
@@ -48,6 +49,102 @@ const canCreateMatches = computed(() => {
     tournament.value?.status !== "Cancelled"
   );
 });
+
+const canCancelTournament = computed(() => {
+  return (
+    canManageTournament.value &&
+    tournament.value &&
+    tournament.value.status !== "Completed" &&
+    tournament.value.status !== "Cancelled"
+  );
+});
+
+const canCompleteTournament = computed(() => {
+  return (
+    canManageTournament.value &&
+    tournament.value?.status === "Ongoing" &&
+    matches.value.length > 0 &&
+    matches.value.every((match) => match.match_status === "Completed")
+  );
+});
+
+const canMarkTournamentOngoing = computed(() => {
+  return (
+    canManageTournament.value &&
+    tournament.value?.status === "Cancelled"
+  );
+});
+
+async function completeTournament() {
+  if (!canCompleteTournament.value) {
+    error.value = "All matches must be completed before finishing the tournament.";
+    return;
+  }
+
+  loading.value = true;
+  clearMessages();
+
+  try {
+    const response = await instance_api.post(`/tournaments/${tournamentId}/complete/`);
+
+    tournament.value = response.data;
+    success.value = "Tournament marked as completed.";
+  } catch (err) {
+    error.value = extractError(err);
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function cancelTournament() {
+  if (!canCancelTournament.value) {
+    error.value = "This tournament cannot be cancelled.";
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Are you sure you want to cancel this tournament?"
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  loading.value = true;
+  clearMessages();
+
+  try {
+    const response = await instance_api.post(`/tournaments/${tournamentId}/cancel/`);
+
+    tournament.value = response.data;
+    success.value = "Tournament cancelled successfully.";
+  } catch (err) {
+    error.value = extractError(err);
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function markTournamentOngoing() {
+  if (!canMarkTournamentOngoing.value) {
+    error.value = "Only cancelled tournaments can be marked as ongoing.";
+    return;
+  }
+
+  loading.value = true;
+  clearMessages();
+
+  try {
+    const response = await instance_api.post(`/tournaments/${tournamentId}/mark-ongoing/`);
+
+    tournament.value = response.data;
+    success.value = "Tournament marked as ongoing.";
+  } catch (err) {
+    error.value = extractError(err);
+  } finally {
+    loading.value = false;
+  }
+}
 
 
 const generateMatchesOnCommence = ref(true);
@@ -738,6 +835,8 @@ onMounted(loadPage);
   </p>
 </section>
 
+
+
         <section
   v-if="canCreateMatches"
   class="rounded-2xl bg-white p-6 shadow"
@@ -974,6 +1073,62 @@ onMounted(loadPage);
             </article>
           </div>
         </section>
+        <section
+  v-if="canManageTournament"
+  class="rounded-2xl bg-white p-6 shadow"
+>
+  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">
+        Tournament Status Controls
+      </h2>
+
+      <p class="mt-1 text-sm text-gray-600">
+        Cancel, reopen, or finish the tournament. Finishing requires all matches to be completed.
+      </p>
+    </div>
+
+    <span class="w-fit rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800">
+      {{ tournament.status }}
+    </span>
+  </div>
+
+  <div class="mt-5 flex flex-col gap-3 sm:flex-row">
+    <button
+      v-if="canCompleteTournament"
+      class="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+      :disabled="loading"
+      @click="completeTournament"
+    >
+      Mark as Completed
+    </button>
+
+    <button
+      v-if="canCancelTournament"
+      class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+      :disabled="loading"
+      @click="cancelTournament"
+    >
+      Cancel Tournament
+    </button>
+
+    <button
+      v-if="canMarkTournamentOngoing"
+      class="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50"
+      :disabled="loading"
+      @click="markTournamentOngoing"
+    >
+      Mark as Ongoing
+    </button>
+  </div>
+
+  <p
+    v-if="tournament.status === 'Ongoing' && !canCompleteTournament"
+    class="mt-4 text-sm text-gray-600"
+  >
+    To finish this tournament, all matches must be completed.
+  </p>
+</section>
       </template>
     </div>
   </main>
