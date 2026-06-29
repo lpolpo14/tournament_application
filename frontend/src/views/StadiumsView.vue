@@ -1,7 +1,10 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import instance_api from "@/services/api.js";
+import { useAuth } from "@/services/useAuth.js";
+
+const { role, isAuthenticated, isLoaded, loadUser } = useAuth();
 
 const stadiums = ref([]);
 const loading = ref(false);
@@ -11,7 +14,11 @@ const success = ref("");
 const form = ref({
   name: "",
   city: "",
-  address: ""
+  address: "",
+});
+
+const canManageStadiums = computed(() => {
+  return isAuthenticated.value && role.value === "sports_admin";
 });
 
 function normalizeStadiums(data) {
@@ -46,6 +53,11 @@ async function fetchStadiums() {
 }
 
 async function createStadium() {
+  if (!canManageStadiums.value) {
+    error.value = "Only sports administrators can create stadiums.";
+    return;
+  }
+
   loading.value = true;
   clearMessages();
 
@@ -75,6 +87,11 @@ async function createStadium() {
 }
 
 async function deleteStadium(stadium) {
+  if (!canManageStadiums.value) {
+    error.value = "Only sports administrators can delete stadiums.";
+    return;
+  }
+
   const confirmed = window.confirm(
     `Are you sure you want to delete ${stadium.name}?`
   );
@@ -99,9 +116,14 @@ async function deleteStadium(stadium) {
   }
 }
 
-onMounted(fetchStadiums);
-</script>
+onMounted(async () => {
+  if (!isLoaded.value) {
+    await loadUser();
+  }
 
+  await fetchStadiums();
+});
+</script>
 <template>
   <main class="min-h-screen bg-gray-100 p-6">
     <div class="mx-auto max-w-6xl space-y-6">
@@ -112,8 +134,8 @@ onMounted(fetchStadiums);
           </h1>
 
           <p class="mt-2 text-gray-600">
-            Create and manage stadiums used for tournament matches.
-          </p>
+            View stadiums used for tournament matches.
+        </p>
         </div>
 
         <RouterLink
@@ -133,7 +155,10 @@ onMounted(fetchStadiums);
         {{ success }}
       </section>
 
-      <section class="rounded-2xl bg-white p-6 shadow">
+      <section
+        v-if="canManageStadiums"
+        class="rounded-2xl bg-white p-6 shadow"
+      >
         <h2 class="text-xl font-semibold text-gray-900">
           Create Stadium
         </h2>
@@ -247,15 +272,20 @@ onMounted(fetchStadiums);
               </p>
             </div>
 
-            <div class="mt-5">
-              <button
-                class="w-full rounded-lg bg-red-600 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                :disabled="loading"
-                @click="deleteStadium(stadium)"
-              >
-                Delete Stadium
-              </button>
-            </div>
+            <div
+                v-if="canManageStadiums"
+                class="mt-5"
+            >
+              <!-- Hide this for now.
+            <button
+              class="w-full rounded-lg bg-red-600 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              :disabled="loading"
+              @click="deleteStadium(stadium)"
+            >
+              Delete Stadium
+            </button>
+            -->
+          </div>
           </article>
         </div>
       </section>
