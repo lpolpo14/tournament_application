@@ -15,6 +15,11 @@ from pathlib import Path
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
 
+
+# Use this when deploying
+DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
+# DEBUG = True
+
 def env_list(name, default=""):
     value = os.environ.get(name, default)
 
@@ -55,9 +60,6 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY","django-insecure-(uhug$6-cpw=s0@
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
-# Use this when deploying
-DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
-# DEBUG = True
 
 # Uncomment those when deploying
 VITE_API_BASE_URL=os.environ.get("VITE_API_BASE_URL")
