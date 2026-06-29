@@ -42,12 +42,12 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY","django-insecure-(uhug$6-cpw=s0@
 # SECURITY WARNING: don't run with debug turned on in production!
 
 # Use this when deploying
-# DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
+# DEBUG = True
 
 # Uncomment those when deploying
-#VITE_API_BASE_URL=os.environ.get("VITE_API_BASE_URL")
-#ALLOWED_HOSTS = [os.environ.get("DJANGO_ALLOWED_HOSTS", "")]
+VITE_API_BASE_URL=os.environ.get("VITE_API_BASE_URL")
+ALLOWED_HOSTS = [os.environ.get("DJANGO_ALLOWED_HOSTS", "")]
 
 
 # Application definition
