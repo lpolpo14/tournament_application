@@ -1,38 +1,40 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuth } from '@/services/useAuth.js'
 
 const router = useRouter()
+const { t } = useI18n()
 const { user, role, isAuthenticated, logout } = useAuth()
 
 const isMobileMenuOpen = ref(false)
 
 const menus = {
   visitor: [
-    { label: 'Tournaments', path: '/tournaments' },
-    { label: 'Teams', path: '/teams' },
-    { label: 'Players', path: '/players' },
+    { labelKey: 'navigation.tournaments', path: '/tournaments' },
+    { labelKey: 'navigation.teams', path: '/teams' },
+    { labelKey: 'navigation.players', path: '/players' },
   ],
 
   team_manager: [
-    { label: 'Teams', path: '/teams' },
-    { label: 'Tournaments', path: '/tournaments' },
-    { label: 'Players', path: '/players' },
+    { labelKey: 'navigation.teams', path: '/teams' },
+    { labelKey: 'navigation.tournaments', path: '/tournaments' },
+    { labelKey: 'navigation.players', path: '/players' },
   ],
 
   referee: [
-    { label: 'My Matches', path: '/referee' },
-    { label: 'Tournaments', path: '/tournaments' },
-    { label: 'Teams', path: '/teams' },
-    { label: 'Players', path: '/players' },
+    { labelKey: 'navigation.myMatches', path: '/referee' },
+    { labelKey: 'navigation.tournaments', path: '/tournaments' },
+    { labelKey: 'navigation.teams', path: '/teams' },
+    { labelKey: 'navigation.players', path: '/players' },
   ],
 
   sports_admin: [
-    { label: 'Tournaments', path: '/tournaments' },
-    { label: 'Stadiums', path: '/stadiums' },
-    { label: 'Teams', path: '/teams' },
-    { label: 'Players', path: '/players' },
+    { labelKey: 'navigation.tournaments', path: '/tournaments' },
+    { labelKey: 'navigation.stadiums', path: '/stadiums' },
+    { labelKey: 'navigation.teams', path: '/teams' },
+    { labelKey: 'navigation.players', path: '/players' },
   ],
 }
 
@@ -50,17 +52,17 @@ async function handleLogout() {
     <nav class="mx-auto max-w-7xl px-6 py-4">
       <div class="flex items-center justify-between">
         <RouterLink to="/" class="text-2xl font-bold text-green-700">
-          Unipi Sports
+          {{ t('common.appName') }}
         </RouterLink>
 
         <div class="hidden items-center gap-6 md:flex">
           <RouterLink
             v-for="item in currentMenu"
-            :key="item.label"
+            :key="item.labelKey"
             :to="item.path"
             class="text-sm font-medium text-gray-700 hover:text-green-700"
           >
-            {{ item.label }}
+            {{ t(item.labelKey) }}
           </RouterLink>
         </div>
 
@@ -69,7 +71,7 @@ async function handleLogout() {
             v-if="isAuthenticated"
             class="text-sm text-gray-600"
           >
-            Signed in as:
+            {{ t('common.signedInAs') }}
             <span class="font-semibold text-gray-900">
               {{ user.username }}
             </span>
@@ -80,7 +82,7 @@ async function handleLogout() {
             to="/login"
             class="rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800"
           >
-            Login
+            {{ t('common.login') }}
           </RouterLink>
 
           <button
@@ -88,7 +90,7 @@ async function handleLogout() {
             class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800"
             @click="handleLogout"
           >
-            Logout
+            {{ t('common.logout') }}
           </button>
         </div>
 
@@ -96,7 +98,7 @@ async function handleLogout() {
           class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 md:hidden"
           @click="isMobileMenuOpen = !isMobileMenuOpen"
         >
-          Menu
+          {{ t('common.menu') }}
         </button>
       </div>
 
@@ -108,7 +110,7 @@ async function handleLogout() {
           v-if="isAuthenticated"
           class="text-sm text-gray-600"
         >
-          Signed in as:
+          {{ t('common.signedInAs') }}
           <span class="font-semibold text-gray-900">
             {{ user.username }}
           </span>
@@ -116,12 +118,12 @@ async function handleLogout() {
 
         <RouterLink
           v-for="item in currentMenu"
-          :key="item.label"
+          :key="item.labelKey"
           :to="item.path"
           class="text-sm font-medium text-gray-700 hover:text-green-700"
           @click="isMobileMenuOpen = false"
         >
-          {{ item.label }}
+          {{ t(item.labelKey) }}
         </RouterLink>
 
         <RouterLink
@@ -130,7 +132,7 @@ async function handleLogout() {
           class="mt-2 rounded-lg bg-green-700 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-green-800"
           @click="isMobileMenuOpen = false"
         >
-          Login
+          {{ t('common.login') }}
         </RouterLink>
 
         <button
@@ -138,7 +140,7 @@ async function handleLogout() {
           class="mt-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800"
           @click="handleLogout"
         >
-          Logout
+          {{ t('common.logout') }}
         </button>
       </div>
     </nav>

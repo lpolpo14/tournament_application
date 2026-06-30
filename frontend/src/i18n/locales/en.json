@@ -1,0 +1,661 @@
+{
+  "common": {
+    "appName": "Unipi Sports",
+    "language": "Language",
+    "english": "English",
+    "greek": "Greek",
+    "login": "Login",
+    "logout": "Logout",
+    "menu": "Menu",
+    "signedInAs": "Signed in as:",
+    "allRightsReserved": "All rights reserved."
+  },
+  "navigation": {
+    "tournaments": "Tournaments",
+    "teams": "Teams",
+    "players": "Players",
+    "myMatches": "My Matches",
+    "stadiums": "Stadiums"
+  },
+  "home": {
+    "title": "Organize sports tournaments with ease.",
+    "subtitle": "Unipi Sports helps teams, referees, and organizers manage tournaments, matches, players, and results in one simple platform.",
+    "begin": "Begin"
+  },
+  "auth": {
+    "fields": {
+      "username": "Username",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "role": "Role"
+    },
+    "login": {
+      "title": "Login",
+      "subtitle": "Access your Unipi Sports account.",
+      "submit": "Login",
+      "loading": "Logging in...",
+      "noAccount": "No account?",
+      "registerLink": "Register",
+      "errors": {
+        "invalidCredentials": "Invalid username or password."
+      }
+    },
+    "register": {
+      "title": "Register",
+      "subtitle": "Create your Unipi Sports account.",
+      "submit": "Register",
+      "loading": "Creating account...",
+      "alreadyHaveAccount": "Already have an account?",
+      "loginLink": "Login",
+      "roleHelp": "Role selection is included for assignment demonstration purposes.",
+      "errors": {
+        "failed": "Registration failed.",
+        "passwordsDoNotMatch": "Passwords do not match."
+      }
+    },
+    "roles": {
+      "teamManager": "Team Manager",
+      "referee": "Referee",
+      "sportsAdmin": "Sports Administrator"
+    }
+  },
+  "referee": {
+    "title": "Referee Dashboard",
+    "subtitle": "View your upcoming assigned matches and open each match sheet.",
+    "checkingPermissions": "Checking permissions...",
+    "accessDeniedTitle": "Access denied",
+    "accessDeniedMessage": "This page is available only to referees.",
+    "backToTournaments": "Back to tournaments",
+    "pendingTitle": "Pending Assigned Matches",
+    "pendingSubtitle": "Matches assigned to you that still need a final result.",
+    "refresh": "Refresh",
+    "loadingMatches": "Loading assigned matches...",
+    "emptyMatches": "You do not have any upcoming assigned matches.",
+    "awaitingResult": "Awaiting result",
+    "openMatchSheet": "Open Match Sheet",
+    "labels": {
+      "tournament": "Tournament",
+      "date": "Date",
+      "stadium": "Stadium"
+    },
+    "match": {
+      "versus": "vs",
+      "notScheduled": "Not scheduled",
+      "noStadiumAssigned": "No stadium assigned"
+    },
+    "status": {
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "errors": {
+      "generic": "Something went wrong."
+    }
+  },
+  "stadiums": {
+    "title": "Stadiums",
+    "subtitle": "View stadiums used for tournament matches.",
+    "backToTournaments": "Back to Tournaments",
+    "errorTitle": "Error",
+    "createTitle": "Create Stadium",
+    "createSubtitle": "Add a stadium that can later be assigned to matches.",
+    "allTitle": "All Stadiums",
+    "refresh": "Refresh",
+    "loading": "Loading stadiums...",
+    "empty": "No stadiums found.",
+    "saving": "Saving...",
+    "createButton": "Create Stadium",
+    "deleteButton": "Delete",
+    "confirmDelete": "Are you sure you want to delete {name}?",
+    "success": {
+      "created": "Stadium created successfully.",
+      "deleted": "Stadium deleted successfully."
+    },
+    "errors": {
+      "generic": "Something went wrong.",
+      "createForbidden": "Only sports administrators can create stadiums.",
+      "deleteForbidden": "Only sports administrators can delete stadiums."
+    },
+    "fields": {
+      "name": "Stadium Name",
+      "city": "City",
+      "address": "Address"
+    },
+    "placeholders": {
+      "name": "Example: Peace and Friendship Stadium",
+      "city": "Example: Piraeus",
+      "address": "Example: Neo Faliro"
+    },
+    "labels": {
+      "address": "Address"
+    },
+    "notSet": "Not set"
+  },
+  "players": {
+    "title": "Players",
+    "subtitle": "Search existing registered athletes and view their player pages.",
+    "addTitle": "Add Player",
+    "addSubtitle": "Register a player so they can later be added to one of your teams.",
+    "addButton": "Add Player",
+    "searchTitle": "Search Players",
+    "searchSubtitle": "Check whether a player has already been registered.",
+    "searchLabel": "Search",
+    "searchPlaceholder": "Search by name, shirt number, or position",
+    "loading": "Loading players...",
+    "empty": "No players are available.",
+    "noSearchResults": "No players match your search.",
+    "successAdded": "Player added successfully.",
+    "errors": {
+      "loadFailed": "Could not load players.",
+      "addForbidden": "You must be signed in as a team manager to add players.",
+      "addFailed": "Could not add player."
+    },
+    "fields": {
+      "name": "Player name",
+      "surname": "Player surname",
+      "mainShirtNumber": "Main shirt number",
+      "position": "Position"
+    },
+    "placeholders": {
+      "name": "Michael",
+      "surname": "Favvas",
+      "shirtNumber": "10"
+    },
+    "table": {
+      "name": "Name",
+      "surname": "Surname",
+      "shirtNumber": "Shirt Number",
+      "position": "Position"
+    },
+    "positions": {
+      "unknown": "Unknown",
+      "goalkeeper": "Goalkeeper",
+      "defender": "Defender",
+      "midfielder": "Midfielder",
+      "forward": "Forward"
+    }
+  },
+  "player": {
+    "backToTeams": "← Back to teams",
+    "loading": "Loading player statistics...",
+    "errorLoad": "Could not load player statistics.",
+    "mainShirtNumber": "Main Shirt Number",
+    "stats": {
+      "matches": "Matches",
+      "goals": "Goals",
+      "fouls": "Fouls",
+      "yellowCards": "Yellow Cards",
+      "redCards": "Red Cards"
+    },
+    "historyTitle": "Match History",
+    "historySubtitle": "Match-by-match statistics recorded for this player.",
+    "emptyHistory": "No match statistics have been recorded for this player yet.",
+    "notSet": "Not set",
+    "noStadiumAssigned": "No stadium assigned",
+    "versus": "vs",
+    "results": {
+      "win": "Win",
+      "loss": "Loss",
+      "draw": "Draw",
+      "notCompleted": "Not completed"
+    },
+    "table": {
+      "match": "Match",
+      "tournament": "Tournament",
+      "date": "Date",
+      "stadium": "Stadium",
+      "score": "Score",
+      "result": "Result",
+      "goalsShort": "G",
+      "foulsShort": "F",
+      "yellowCardsShort": "YC",
+      "redCardsShort": "RC"
+    }
+  },
+  "teams": {
+    "title": "Teams",
+    "subtitle": "Browse registered teams, view their details, and manage your own teams.",
+    "myTeamsTitle": "My Teams",
+    "myTeamsSubtitle": "Create and edit the teams you organize.",
+    "createTitle": "Create Team",
+    "createButton": "Create Team",
+    "teamName": "Team name",
+    "sport": "Sport",
+    "teamNamePlaceholder": "Hraklara",
+    "sportPlaceholder": "Football",
+    "myTeamsLoading": "Your teams are loading...",
+    "myTeamsEmpty": "You have not created any teams yet.",
+    "browseTitle": "Browse All Teams",
+    "browseSubtitle": "View all teams registered in the platform.",
+    "loading": "Teams are loading...",
+    "empty": "No teams are available.",
+    "players": "Players",
+    "view": "View",
+    "edit": "Edit",
+    "logoAlt": "{name} logo",
+    "success": {
+      "created": "Team added successfully!"
+    },
+    "errors": {
+      "loadFailed": "Could not load teams.",
+      "createForbidden": "You must be signed in as a team manager to create teams.",
+      "createFailed": "Could not add team."
+    }
+  },
+  "tournaments": {
+    "title": "Tournaments",
+    "subtitle": "Browse tournaments, teams, schedules, and standings.",
+    "createButton": "Create Tournament",
+    "errorTitle": "Error",
+    "allTitle": "All Tournaments",
+    "loading": "Loading tournaments...",
+    "empty": "No tournaments found.",
+    "createFirst": "Create your first tournament",
+    "emptyVisitorMessage": "New tournaments will appear here when they are created by a sports administrator.",
+    "viewDetails": "View Details",
+    "notSet": "Not set",
+    "labels": {
+      "location": "Location",
+      "starts": "Starts",
+      "ends": "Ends",
+      "teams": "Teams"
+    },
+    "status": {
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "errors": {
+      "generic": "Something went wrong."
+    }
+  },
+  "tournamentCreate": {
+    "back": "← Back to tournaments",
+    "title": "Create Tournament",
+    "subtitle": "Fill in the basic tournament information.",
+    "errorTitle": "Error",
+    "checkingPermissions": "Checking permissions...",
+    "accessDeniedTitle": "Access denied",
+    "accessDeniedMessage": "Only sports administrators can create tournaments.",
+    "backToTournaments": "Back to tournaments",
+    "submit": "Create Tournament",
+    "loading": "Creating...",
+    "cancel": "Cancel",
+    "statusHelp": "New tournaments are created as",
+    "fields": {
+      "name": "Tournament Name",
+      "sport": "Sport",
+      "location": "Location",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "status": "Status"
+    },
+    "placeholders": {
+      "name": "Example: Unipi Football Cup",
+      "sport": "Example: Football",
+      "location": "Example: Piraeus"
+    },
+    "errors": {
+      "generic": "Something went wrong.",
+      "createForbidden": "Only sports administrators can create tournaments."
+    }
+  },
+  "tournamentDetail": {
+    "back": "← Back to tournaments",
+    "fallbackTitle": "Tournament",
+    "loadingData": "Loading tournament data...",
+    "errorTitle": "Error",
+    "header": {
+      "subtitle": "{sport} tournament in {location}"
+    },
+    "summary": {
+      "sport": "Sport",
+      "location": "Location",
+      "startDate": "Start Date",
+      "endDate": "End Date"
+    },
+    "registration": {
+      "title": "Tournament Registration",
+      "subtitle": "Team managers can request participation before the tournament begins.",
+      "selectTeam": "Select Team",
+      "chooseTeam": "Choose a team",
+      "requestButton": "Request Registration"
+    },
+    "requests": {
+      "title": "Registration Requests",
+      "subtitle": "Sports administrators can accept or reject teams before commencing the tournament.",
+      "refresh": "Refresh Requests",
+      "empty": "No registration requests yet.",
+      "team": "Team",
+      "status": "Status",
+      "requestedAt": "Requested At",
+      "actions": "Actions",
+      "accept": "Accept",
+      "reject": "Reject",
+      "decided": "Decided"
+    },
+    "participatingTeams": {
+      "title": "Participating Teams",
+      "subtitle": "Teams currently assigned to this tournament.",
+      "refresh": "Refresh",
+      "empty": "No teams assigned yet.",
+      "teamFallback": "Team #{id}"
+    },
+    "standings": {
+      "title": "Standings",
+      "subtitle": "Automatically calculated from completed matches.",
+      "refresh": "Refresh Standings",
+      "empty": "No standings available yet."
+    },
+    "admin": {
+      "title": "Admin Controls",
+      "subtitle": "Commence the tournament and generate matches for accepted teams.",
+      "autoGenerateMatches": "Automatically generate matches",
+      "commenceAndGenerate": "Commence & Generate Matches",
+      "generateMissing": "Generate Missing Matches",
+      "minTeamsRequired": "At least two accepted teams are required before commencing the tournament."
+    },
+    "manualMatch": {
+      "title": "Create Match Manually",
+      "subtitle": "Assign two accepted teams, a date/time, and a stadium.",
+      "team1": "Team 1",
+      "team2": "Team 2",
+      "stadium": "Stadium",
+      "referee": "Referee",
+      "dateTime": "Date and Time",
+      "selectFirstTeam": "Select first team",
+      "selectSecondTeam": "Select second team",
+      "selectStadium": "Select stadium",
+      "selectReferee": "Select referee",
+      "createButton": "Create Match"
+    },
+    "matches": {
+      "title": "Matches",
+      "subtitle": "View tournament matches, scores, and match details.",
+      "refresh": "Refresh Matches",
+      "empty": "No matches created yet.",
+      "matchNumber": "Match #{id}",
+      "date": "Date",
+      "stadium": "Stadium",
+      "status": "Status",
+      "referee": "Referee",
+      "score": "Score",
+      "notAssigned": "Not assigned",
+      "noStadiumAssigned": "No stadium assigned",
+      "openMatchSheet": "Open Match Sheet",
+      "viewMatchDetails": "View Match Details",
+      "versus": "vs"
+    },
+    "statusControls": {
+      "title": "Tournament Status Controls",
+      "subtitle": "Cancel, reopen, or finish the tournament. Finishing requires all matches to be completed.",
+      "markCompleted": "Mark as Completed",
+      "cancelTournament": "Cancel Tournament",
+      "markOngoing": "Mark as Ongoing",
+      "finishRequirement": "To finish this tournament, all matches must be completed."
+    },
+    "status": {
+      "scheduled": "Scheduled",
+      "ongoing": "Ongoing",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "rejected": "Rejected"
+    },
+    "common": {
+      "notSet": "Not set"
+    },
+    "success": {
+      "completed": "Tournament marked as completed.",
+      "cancelled": "Tournament cancelled successfully.",
+      "ongoing": "Tournament marked as ongoing.",
+      "matchCreated": "Match created successfully.",
+      "registrationRequested": "Registration request submitted successfully.",
+      "registrationAccepted": "Registration accepted.",
+      "registrationRejected": "Registration rejected.",
+      "commencedGenerated": "Tournament commenced. Generated {count} matches.",
+      "commencedManual": "Tournament commenced. You can now create matches manually.",
+      "generatedMatches": "Generated {count} matches."
+    },
+    "confirm": {
+      "cancelTournament": "Are you sure you want to cancel this tournament?"
+    },
+    "errors": {
+      "generic": "Something went wrong.",
+      "completeRequiresAll": "All matches must be completed before finishing the tournament.",
+      "cannotCancel": "This tournament cannot be cancelled.",
+      "onlyCancelledCanBeOngoing": "Only cancelled tournaments can be marked as ongoing.",
+      "createMatchForbidden": "Only sports administrators can create matches for active tournaments.",
+      "teamCannotPlayItself": "A team cannot play against itself.",
+      "registrationForbidden": "Only team managers can request registration while the tournament is scheduled.",
+      "acceptForbidden": "Only sports administrators can accept registration requests.",
+      "rejectForbidden": "Only sports administrators can reject registration requests.",
+      "commenceForbidden": "Only sports administrators can commence tournaments.",
+      "generateForbidden": "Only sports administrators can generate matches."
+    }
+  },
+  "matchDetail": {
+    "back": "← Back to tournaments",
+    "fallbackTitle": "Match",
+    "subtitle": "Match details, score information, and basic statistics.",
+    "errorTitle": "Error",
+    "loadingData": "Loading match data...",
+    "common": {
+      "notSet": "Not set",
+      "notAssigned": "Not assigned",
+      "team": "Team",
+      "teamFallback": "Team #{id}",
+      "versus": "vs",
+      "noStadiumAssigned": "No stadium assigned"
+    },
+    "status": {
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "summary": {
+      "referee": "Referee",
+      "team1": "Team 1",
+      "team2": "Team 2",
+      "date": "Date",
+      "stadium": "Stadium"
+    },
+    "score": {
+      "title": "Score",
+      "currentResult": "Current Result",
+      "teamScore": "{team} Score",
+      "saveScore": "Save Score"
+    },
+    "adminSettings": {
+      "title": "Sports Admin Match Settings",
+      "subtitle": "Change the referee, stadium, or scheduled date. Scores remain controlled by the assigned referee.",
+      "cancelMatch": "Cancel Match",
+      "stadium": "Stadium",
+      "referee": "Referee",
+      "scheduledDate": "Scheduled Date",
+      "selectStadium": "Select stadium",
+      "selectReferee": "Select referee",
+      "save": "Save Match Settings"
+    },
+    "refereeScore": {
+      "title": "Referee Score Management",
+      "subtitle": "Referees can add or edit final scores. Penalties, yellow cards, red cards, and detailed statistics can be added later."
+    },
+    "statistics": {
+      "teamTitle": "{team} Player Statistics",
+      "teamSubtitle": "Add or edit statistics only for players of {team}.",
+      "player": "Player",
+      "selectPlayer": "Select player",
+      "goals": "Goals",
+      "fouls": "Fouls",
+      "yellowCards": "Yellow Cards",
+      "redCards": "Red Cards",
+      "yellow": "Yellow",
+      "red": "Red",
+      "shirt": "Shirt",
+      "team": "Team",
+      "actions": "Actions",
+      "edit": "Edit",
+      "saveTeamStatistics": "Save {team} Statistics",
+      "noTeamStatistics": "No statistics recorded for {team} yet.",
+      "publicTitle": "Player Statistics",
+      "publicSubtitle": "Recorded player statistics for this match.",
+      "publicEmpty": "No player statistics have been recorded yet."
+    },
+    "viewer": {
+      "title": "Match Scores and Statistics",
+      "subtitle": "Visitors, team managers, and administrators can view the result and match information. Only the assigned referee can edit scores and player statistics.",
+      "status": "Status",
+      "notRecordedYet": "Not recorded yet"
+    },
+    "refereeAccess": {
+      "title": "Referee Access",
+      "message": "You are signed in as a referee, but you are not assigned to this match. You can view the match, but you cannot edit scores or statistics.",
+      "assignedReferee": "Assigned referee"
+    },
+    "success": {
+      "settingsUpdated": "Match settings updated successfully.",
+      "cancelled": "Match cancelled successfully.",
+      "scoreSaved": "Score saved successfully.",
+      "statisticsUpdated": "Player statistics updated successfully.",
+      "statisticsSaved": "Player statistics saved successfully."
+    },
+    "confirm": {
+      "cancelMatch": "Are you sure you want to cancel this match?"
+    },
+    "errors": {
+      "generic": "Something went wrong.",
+      "adminEditForbidden": "Only sports administrators can edit match settings.",
+      "adminCancelForbidden": "Only sports administrators can cancel matches.",
+      "scoreForbidden": "Only the assigned referee can submit this match score.",
+      "statisticsForbidden": "Only the assigned referee can edit player statistics for this match."
+    }
+  },
+  "teamDetail": {
+    "loading": "Team is loading...",
+    "logoAlt": "{name} logo",
+    "logoPreviewAlt": "Team logo preview",
+    "logoPreview": "Logo preview",
+    "editTeam": "Edit Team",
+    "saveChanges": "Save Changes",
+    "cancel": "Cancel",
+    "teamName": "Team name",
+    "sport": "Sport",
+    "teamLogo": "Team logo",
+    "success": {
+      "updated": "Team updated successfully.",
+      "playerAdded": "{name} was added to the team.",
+      "playerRemoved": "{name} was removed from the team."
+    },
+    "errors": {
+      "generic": "Something went wrong.",
+      "loadTeam": "Could not load team.",
+      "loadPlayers": "Could not load players.",
+      "loadMatches": "Could not load team matches.",
+      "loadStandings": "Could not load tournament standings.",
+      "editForbidden": "You can only edit teams that you manage.",
+      "addForbidden": "You can only add players to teams that you manage.",
+      "removeForbidden": "You can only remove players from teams that you manage.",
+      "addFailed": "Could not add player to team.",
+      "removeFailed": "Could not remove player from team."
+    },
+    "fields": {
+      "teamName": "Team name",
+      "sport": "Sport",
+      "teamLogo": "Team logo",
+      "error": "Error"
+    },
+    "matches": {
+      "upcomingTitle": "Upcoming Matches",
+      "upcomingSubtitle": "The next scheduled matches for this team.",
+      "pastTitle": "Past Matches",
+      "pastSubtitle": "Completed or already-played matches for this team.",
+      "loading": "Loading matches...",
+      "noUpcoming": "No upcoming matches found.",
+      "noPast": "No past matches found.",
+      "hidePast": "Hide Past Matches",
+      "viewPast": "View Past Matches ({count})",
+      "clickToShow": "Click “View Past Matches” to show this team’s match history.",
+      "viewTournament": "View tournament",
+      "tournament": "Tournament",
+      "opponent": "Opponent",
+      "versus": "vs",
+      "notScheduled": "Not scheduled",
+      "scoreNotSubmitted": "Score not submitted",
+      "noStadiumAssigned": "No stadium assigned",
+      "table": {
+        "match": "Match",
+        "tournament": "Tournament",
+        "date": "Date",
+        "score": "Score",
+        "status": "Status"
+      }
+    },
+    "standings": {
+      "title": "Tournament Leaderboards",
+      "subtitle": "Current position of this team in every tournament it participates in.",
+      "refresh": "Refresh Standings",
+      "loading": "Loading tournament standings...",
+      "empty": "This team does not participate in any tournament yet.",
+      "position": "Position",
+      "points": "Points",
+      "played": "Played",
+      "record": "Record",
+      "goalDifference": "Goal Difference",
+      "viewFull": "View full leaderboard",
+      "openTournament": "Open tournament page",
+      "notSet": "Not set",
+      "winsShort": "W",
+      "drawsShort": "D",
+      "lossesShort": "L"
+    },
+    "players": {
+      "title": "Team Players",
+      "subtitle": "Players currently registered in this team.",
+      "empty": "No players have been added to this team yet.",
+      "teamNumber": "Team #",
+      "name": "Name",
+      "mainNumber": "Main #",
+      "position": "Position",
+      "action": "Action",
+      "delete": "Delete",
+      "addTitle": "Add Player to Team",
+      "addSubtitle": "Search existing players and add them to this team.",
+      "searchPlayers": "Search players",
+      "searchPlaceholder": "Search by name, number, or position",
+      "loading": "Loading players...",
+      "emptyAvailable": "No players are available.",
+      "noSearchResults": "No players match your search.",
+      "created": "Created",
+      "add": "Add",
+      "added": "Added"
+    },
+    "positions": {
+      "unknown": "Unknown",
+      "goalkeeper": "Goalkeeper",
+      "defender": "Defender",
+      "midfielder": "Midfielder",
+      "forward": "Forward"
+    },
+    "status": {
+      "scheduled": "Scheduled",
+      "ongoing": "Ongoing",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "standingsTable": {
+    "rank": "#",
+    "team": "Team",
+    "played": "P",
+    "wins": "W",
+    "draws": "D",
+    "losses": "L",
+    "goalsScored": "GS",
+    "goalsConceded": "GC",
+    "goalDifference": "GD",
+    "points": "Pts"
+  }
+}

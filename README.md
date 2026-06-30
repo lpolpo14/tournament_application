@@ -29,7 +29,7 @@ This project is being developed for the course 'Information Systems on the Inter
 - [x] View player statistics
 - [x] Add Authentication
 - [x] Ensure Mobile Compatible UI 
-- [ ] Referee can view upcoming matches
+- [x] Referee can view upcoming matches
 
 ### User Functionality
 
@@ -47,8 +47,10 @@ This project is being developed for the course 'Information Systems on the Inter
 - [ ] CSRF Headers
 - [x] Session Management
 - [x] Encrypt Password
-- [ ] Authentication \& Authorization
+- [x] Authentication \& Authorization
 
 ### Miscellaneous
 
 - [x] Deploy on Railway
+- [x] Migrate to PostgreSQL
+- [x] Added Language Localization using i18n (English + Greek)

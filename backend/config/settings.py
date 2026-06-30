@@ -12,8 +12,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-USE_X_FORWARDED_HOST = True
+#SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+#USE_X_FORWARDED_HOST = True
 
 
 # Use this when deploying
@@ -29,7 +29,7 @@ def env_list(name, default=""):
         if item.strip()
     ]
 
-ALLOWED_HOSTS = [os.environ.get("DJANGO_ALLOWED_HOSTS", "")]
+ALLOWED_HOSTS = [os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost")]
 CSRF_TRUSTED_ORIGINS = [
     os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:5173"),
 ]

@@ -1,9 +1,11 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { matchApi } from '@/services/api.js'
 import { useAuth } from '@/services/useAuth.js'
 
+const { t, locale } = useI18n()
 const { role, isAuthenticated, isLoaded, loadUser } = useAuth()
 
 const matches = ref([])
@@ -27,19 +29,25 @@ function isOverdue(match) {
 }
 
 function extractError(err) {
+  if (err.response?.data?.detail) {
+    return err.response.data.detail
+  }
+
   if (err.response?.data) {
     return JSON.stringify(err.response.data, null, 2)
   }
 
-  return err.message || 'Something went wrong.'
+  return err.message || t('referee.errors.generic')
 }
 
 function formatDateTime(value) {
   if (!value) {
-    return 'Not scheduled'
+    return t('referee.match.notScheduled')
   }
 
-  return new Date(value).toLocaleString()
+  const browserLocale = locale.value === 'el' ? 'el-GR' : 'en-US'
+
+  return new Date(value).toLocaleString(browserLocale)
 }
 
 function stadiumLabel(match) {
@@ -51,7 +59,17 @@ function stadiumLabel(match) {
     return match.stadium_name
   }
 
-  return 'No stadium assigned'
+  return t('referee.match.noStadiumAssigned')
+}
+
+function translatedMatchStatus(status) {
+  const statusMap = {
+    Scheduled: 'referee.status.scheduled',
+    Completed: 'referee.status.completed',
+    Cancelled: 'referee.status.cancelled',
+  }
+
+  return statusMap[status] ? t(statusMap[status]) : status
 }
 
 async function loadAssignedMatches() {
@@ -90,11 +108,11 @@ onMounted(async () => {
     <div class="mx-auto max-w-6xl space-y-8">
       <header class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <h1 class="text-4xl font-bold text-gray-900">
-          Referee Dashboard
+          {{ t('referee.title') }}
         </h1>
 
         <p class="mt-3 max-w-2xl text-gray-600">
-          View your upcoming assigned matches and open each match sheet.
+          {{ t('referee.subtitle') }}
         </p>
       </header>
 
@@ -103,7 +121,7 @@ onMounted(async () => {
         class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
       >
         <p class="text-gray-600">
-          Checking permissions...
+          {{ t('referee.checkingPermissions') }}
         </p>
       </section>
 
@@ -112,18 +130,18 @@ onMounted(async () => {
         class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
       >
         <h2 class="text-2xl font-bold text-gray-900">
-          Access denied
+          {{ t('referee.accessDeniedTitle') }}
         </h2>
 
         <p class="mt-2 text-gray-600">
-          This page is available only to referees.
+          {{ t('referee.accessDeniedMessage') }}
         </p>
 
         <RouterLink
           :to="{ name: 'tournaments' }"
           class="mt-5 inline-block rounded-xl bg-gray-900 px-5 py-2 font-semibold text-white hover:bg-black"
         >
-          Back to tournaments
+          {{ t('referee.backToTournaments') }}
         </RouterLink>
       </section>
 
@@ -138,12 +156,12 @@ onMounted(async () => {
         <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2>
-                   Pending Assigned Matches
+              <h2 class="text-2xl font-bold text-gray-900">
+                {{ t('referee.pendingTitle') }}
               </h2>
 
-              <p>
-                    Matches assigned to you that still need a final result.
+              <p class="mt-1 text-sm text-gray-600">
+                {{ t('referee.pendingSubtitle') }}
               </p>
             </div>
 
@@ -152,7 +170,7 @@ onMounted(async () => {
               :disabled="loading"
               @click="loadAssignedMatches"
             >
-              Refresh
+              {{ t('referee.refresh') }}
             </button>
           </div>
 
@@ -160,14 +178,14 @@ onMounted(async () => {
             v-if="loading"
             class="mt-6 text-gray-600"
           >
-            Loading assigned matches...
+            {{ t('referee.loadingMatches') }}
           </p>
 
           <p
             v-else-if="matches.length === 0"
             class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
           >
-            You do not have any upcoming assigned matches.
+            {{ t('referee.emptyMatches') }}
           </p>
 
           <div
@@ -182,32 +200,39 @@ onMounted(async () => {
               <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
                   <h3 class="text-xl font-bold text-gray-900">
-                    {{ match.team1_name }} vs {{ match.team2_name }}
+                    {{ match.team1_name }}
+                    {{ t('referee.match.versus') }}
+                    {{ match.team2_name }}
                   </h3>
 
                   <p class="mt-1 text-sm text-gray-600">
-                    Tournament: {{ match.tournament_name }}
+                    {{ t('referee.labels.tournament') }}:
+                    {{ match.tournament_name }}
                   </p>
 
                   <p class="mt-1 text-sm text-gray-600">
-                    Date: {{ formatDateTime(match.scheduled_date) }}
+                    {{ t('referee.labels.date') }}:
+                    {{ formatDateTime(match.scheduled_date) }}
                   </p>
 
                   <p class="mt-1 text-sm text-gray-600">
-                    Stadium: {{ stadiumLabel(match) }}
+                    {{ t('referee.labels.stadium') }}:
+                    {{ stadiumLabel(match) }}
                   </p>
                 </div>
 
-                <span
-                  v-if="isOverdue(match)"
-                  class="w-fit rounded-full bg-red-50 px-3 py-1 text-sm font-semibold text-red-700"
-                >
-                Awaiting result
-                </span>
+                <div class="flex flex-col gap-2 md:items-end">
+                  <span
+                    v-if="isOverdue(match)"
+                    class="w-fit rounded-full bg-red-50 px-3 py-1 text-sm font-semibold text-red-700"
+                  >
+                    {{ t('referee.awaitingResult') }}
+                  </span>
 
-                <span class="w-fit rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
-                  {{ match.match_status }}
-                </span>
+                  <span class="w-fit rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+                    {{ translatedMatchStatus(match.match_status) }}
+                  </span>
+                </div>
               </div>
 
               <div class="mt-5 flex justify-end">
@@ -215,7 +240,7 @@ onMounted(async () => {
                   :to="{ name: 'match', params: { id: match.id } }"
                   class="rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700"
                 >
-                  Open Match Sheet
+                  {{ t('referee.openMatchSheet') }}
                 </RouterLink>
               </div>
             </article>

@@ -1,9 +1,11 @@
 <script setup>
 import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import {useAuth} from "@/services/useAuth.js";
+import { useI18n } from 'vue-i18n'
+import { useAuth } from '@/services/useAuth.js'
 
 const router = useRouter()
+const { t } = useI18n()
 const { login } = useAuth()
 
 const username = ref('')
@@ -19,8 +21,7 @@ async function submitLogin() {
     await login(username.value, password.value)
     router.push('/')
   } catch (error) {
-    errorMessage.value =
-      error.response?.data?.detail || 'Invalid username or password.'
+    errorMessage.value = t('auth.login.errors.invalidCredentials')
   } finally {
     isLoading.value = false
   }
@@ -31,17 +32,17 @@ async function submitLogin() {
   <main class="mx-auto max-w-md px-6 py-12">
     <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
       <h1 class="text-3xl font-bold text-gray-900">
-        Login
+        {{ t('auth.login.title') }}
       </h1>
 
       <p class="mt-2 text-sm text-gray-600">
-        Access your Unipi Sports account.
+        {{ t('auth.login.subtitle') }}
       </p>
 
       <form class="mt-6 space-y-4" @submit.prevent="submitLogin">
         <div>
           <label class="block text-sm font-medium text-gray-700">
-            Username
+            {{ t('auth.fields.username') }}
           </label>
 
           <input
@@ -55,7 +56,7 @@ async function submitLogin() {
 
         <div>
           <label class="block text-sm font-medium text-gray-700">
-            Password
+            {{ t('auth.fields.password') }}
           </label>
 
           <input
@@ -76,17 +77,17 @@ async function submitLogin() {
           :disabled="isLoading"
           class="w-full rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-60"
         >
-          {{ isLoading ? 'Logging in...' : 'Login' }}
+          {{ isLoading ? t('auth.login.loading') : t('auth.login.submit') }}
         </button>
       </form>
 
       <p class="mt-4 text-center text-sm text-gray-600">
-        No account?
+        {{ t('auth.login.noAccount') }}
         <RouterLink
           to="/register"
           class="font-semibold text-green-700 hover:text-green-800"
         >
-          Register
+          {{ t('auth.login.registerLink') }}
         </RouterLink>
       </p>
     </section>

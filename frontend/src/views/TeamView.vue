@@ -1,11 +1,13 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { playerApi, teamApi } from '@/services/api.js'
-import StandingsTeamTable from "@/components/helpers/StandingsTeamTable.vue";
+import StandingsTeamTable from '@/components/helpers/StandingsTeamTable.vue'
 import { useAuth } from '@/services/useAuth.js'
 
 const route = useRoute()
+const { t, locale } = useI18n()
 const { user, role, isAuthenticated, loadUser } = useAuth()
 
 const team = ref(null)
@@ -32,11 +34,24 @@ const tournamentStandings = ref([])
 const tournamentStandingsLoading = ref(false)
 const tournamentStandingsError = ref('')
 
-
-
 const matchesLoading = ref(false)
 const matchesError = ref('')
 const showPastMatches = ref(false)
+
+const selectedLogo = ref(null)
+const logoPreview = ref('')
+
+const playerSearchQuery = ref('')
+
+const deletePlayerError = ref('')
+const deletePlayerSuccess = ref('')
+
+const editForm = ref({
+  team_name: '',
+  sport_name: '',
+})
+
+const shirtNumbers = ref({})
 
 const futureMatches = computed(() => {
   return teamMatches.value.future_matches ?? []
@@ -45,150 +60,6 @@ const futureMatches = computed(() => {
 const pastMatches = computed(() => {
   return teamMatches.value.past_matches ?? []
 })
-
-function formatMatchDate(dateValue) {
-  if (!dateValue) {
-    return 'Not scheduled'
-  }
-
-  return new Intl.DateTimeFormat('en-GB', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(dateValue))
-}
-
-function getOpponentName(match) {
-  if (!team.value) {
-    return 'Opponent'
-  }
-
-  const currentTeamId = Number(team.value.id)
-
-  if (Number(match.team1) === currentTeamId) {
-    return match.team2_name
-  }
-
-  return match.team1_name
-}
-
-async function loadTournamentStandings() {
-  tournamentStandingsLoading.value = true
-  tournamentStandingsError.value = ''
-
-  try {
-    const response = await teamApi.getTournamentStandings(route.params.id)
-    tournamentStandings.value = response.data
-  } catch (err) {
-    tournamentStandingsError.value = 'Could not load tournament standings.'
-  } finally {
-    tournamentStandingsLoading.value = false
-  }
-}
-
-function formatTournamentDate(value) {
-  if (!value) {
-    return 'Not set'
-  }
-
-  return new Date(value).toLocaleDateString()
-}
-
-function getGoalDifference(standing) {
-  return standing.goals_scored - standing.goals_conceded
-}
-
-function getGoalDifferenceLabel(standing) {
-  const goalDifference = getGoalDifference(standing)
-
-  if (goalDifference > 0) {
-    return `+${goalDifference}`
-  }
-
-  return String(goalDifference)
-}
-
-function getScoreText(match) {
-  if (match.team1_score === null || match.team2_score === null) {
-    return 'Score not submitted'
-  }
-
-  return `${match.team1_score} - ${match.team2_score}`
-}
-
-function getStadiumText(match) {
-  const parts = [match.stadium_name, match.stadium_city].filter(Boolean)
-
-  if (parts.length === 0) {
-    return 'No stadium assigned'
-  }
-
-  return parts.join(', ')
-}
-async function loadTeamMatches() {
-  matchesLoading.value = true
-  matchesError.value = ''
-
-  try {
-    const response = await teamApi.getMatches(route.params.id, {
-      future_limit: 3,
-    })
-
-    teamMatches.value = response.data
-  } catch (err) {
-    matchesError.value = 'Could not load team matches.'
-  } finally {
-    matchesLoading.value = false
-  }
-}
-
-const selectedLogo = ref(null)
-const logoPreview = ref('')
-
-function handleLogoChange(event) {
-  const file = event.target.files[0]
-
-  selectedLogo.value = file ?? null
-
-  if (file) {
-    logoPreview.value = URL.createObjectURL(file)
-  } else {
-    logoPreview.value = ''
-  }
-}
-
-const playerSearchQuery = ref('')
-
-const deletePlayerError = ref('')
-const deletePlayerSuccess = ref('')
-
-async function removePlayerFromTeam(member) {
-  if (!canEditTeam.value) {
-    deletePlayerError.value = 'You can only remove players from teams that you manage.'
-    return
-  }
-
-  deletePlayerError.value = ''
-  deletePlayerSuccess.value = ''
-
-  const playerName = member.player?.full_name ?? 'Player'
-
-  try {
-    await teamApi.removePlayer(route.params.id, member.id)
-
-    deletePlayerSuccess.value = `${playerName} was removed from the team.`
-
-    await loadTeam()
-  } catch (err) {
-    deletePlayerError.value = 'Could not remove player from team.'
-  }
-}
-
-const editForm = ref({
-  team_name: '',
-  sport_name: '',
-})
-
-const shirtNumbers = ref({})
 
 const canEditTeam = computed(() => {
   if (!isAuthenticated.value) {
@@ -207,11 +78,11 @@ const canEditTeam = computed(() => {
 })
 
 const positions = [
-  { value: 'UK', label: 'Unknown' },
-  { value: 'GK', label: 'Goalkeeper' },
-  { value: 'DF', label: 'Defender' },
-  { value: 'MF', label: 'Midfielder' },
-  { value: 'FR', label: 'Forward' },
+  { value: 'UK', labelKey: 'teamDetail.positions.unknown' },
+  { value: 'GK', labelKey: 'teamDetail.positions.goalkeeper' },
+  { value: 'DF', labelKey: 'teamDetail.positions.defender' },
+  { value: 'MF', labelKey: 'teamDetail.positions.midfielder' },
+  { value: 'FR', labelKey: 'teamDetail.positions.forward' },
 ]
 
 const teamPlayerIds = computed(() => {
@@ -238,7 +109,7 @@ const filteredPlayers = computed(() => {
   return players.filter((player) => {
     const fullName = `${player.name ?? ''} ${player.surname ?? ''}`.toLowerCase()
     const shirtNumber = String(player.main_shirt_number ?? '')
-    const position = String(player.position_display ?? player.position ?? '').toLowerCase()
+    const position = getPositionLabel(player.position).toLowerCase()
 
     return (
       fullName.includes(query) ||
@@ -248,9 +119,160 @@ const filteredPlayers = computed(() => {
   })
 })
 
+function browserLocale() {
+  return locale.value === 'el' ? 'el-GR' : 'en-GB'
+}
+
+function translatedStatus(status) {
+  const statusMap = {
+    Scheduled: 'teamDetail.status.scheduled',
+    Ongoing: 'teamDetail.status.ongoing',
+    Completed: 'teamDetail.status.completed',
+    Cancelled: 'teamDetail.status.cancelled',
+  }
+
+  return statusMap[status] ? t(statusMap[status]) : status
+}
+
+function formatMatchDate(dateValue) {
+  if (!dateValue) {
+    return t('teamDetail.matches.notScheduled')
+  }
+
+  return new Intl.DateTimeFormat(browserLocale(), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(dateValue))
+}
+
+function formatSimpleDate(value) {
+  if (!value) {
+    return t('teamDetail.standings.notSet')
+  }
+
+  return new Date(value).toLocaleDateString(browserLocale())
+}
+
+function getOpponentName(match) {
+  if (!team.value) {
+    return t('teamDetail.matches.opponent')
+  }
+
+  const currentTeamId = Number(team.value.id)
+
+  if (Number(match.team1) === currentTeamId) {
+    return match.team2_name
+  }
+
+  return match.team1_name
+}
+
+async function loadTournamentStandings() {
+  tournamentStandingsLoading.value = true
+  tournamentStandingsError.value = ''
+
+  try {
+    const response = await teamApi.getTournamentStandings(route.params.id)
+    tournamentStandings.value = response.data
+  } catch (err) {
+    tournamentStandingsError.value = t('teamDetail.errors.loadStandings')
+  } finally {
+    tournamentStandingsLoading.value = false
+  }
+}
+
+function formatTournamentDate(value) {
+  return formatSimpleDate(value)
+}
+
+function getGoalDifference(standing) {
+  return standing.goals_scored - standing.goals_conceded
+}
+
+function getGoalDifferenceLabel(standing) {
+  const goalDifference = getGoalDifference(standing)
+
+  if (goalDifference > 0) {
+    return `+${goalDifference}`
+  }
+
+  return String(goalDifference)
+}
+
+function getScoreText(match) {
+  if (match.team1_score === null || match.team2_score === null) {
+    return t('teamDetail.matches.scoreNotSubmitted')
+  }
+
+  return `${match.team1_score} - ${match.team2_score}`
+}
+
+function getStadiumText(match) {
+  const parts = [match.stadium_name, match.stadium_city].filter(Boolean)
+
+  if (parts.length === 0) {
+    return t('teamDetail.matches.noStadiumAssigned')
+  }
+
+  return parts.join(', ')
+}
+
+async function loadTeamMatches() {
+  matchesLoading.value = true
+  matchesError.value = ''
+
+  try {
+    const response = await teamApi.getMatches(route.params.id, {
+      future_limit: 3,
+    })
+
+    teamMatches.value = response.data
+  } catch (err) {
+    matchesError.value = t('teamDetail.errors.loadMatches')
+  } finally {
+    matchesLoading.value = false
+  }
+}
+
+function handleLogoChange(event) {
+  const file = event.target.files[0]
+
+  selectedLogo.value = file ?? null
+
+  if (file) {
+    logoPreview.value = URL.createObjectURL(file)
+  } else {
+    logoPreview.value = ''
+  }
+}
+
+async function removePlayerFromTeam(member) {
+  if (!canEditTeam.value) {
+    deletePlayerError.value = t('teamDetail.errors.removeForbidden')
+    return
+  }
+
+  deletePlayerError.value = ''
+  deletePlayerSuccess.value = ''
+
+  const playerName = member.player?.full_name ?? t('teamDetail.players.name')
+
+  try {
+    await teamApi.removePlayer(route.params.id, member.id)
+
+    deletePlayerSuccess.value = t('teamDetail.success.playerRemoved', {
+      name: playerName,
+    })
+
+    await loadTeam()
+  } catch (err) {
+    deletePlayerError.value = t('teamDetail.errors.removeFailed')
+  }
+}
+
 function getPositionLabel(positionValue) {
   const position = positions.find((item) => item.value === positionValue)
-  return position ? position.label : positionValue
+  return position ? t(position.labelKey) : positionValue
 }
 
 function isPlayerAlreadyInTeam(playerId) {
@@ -275,7 +297,7 @@ async function loadTeam() {
       sport_name: response.data.sport_name,
     }
   } catch (err) {
-    error.value = 'Could not load team.'
+    error.value = t('teamDetail.errors.loadTeam')
   } finally {
     loading.value = false
   }
@@ -294,7 +316,7 @@ async function loadAvailablePlayers() {
       shirtNumbers.value[player.id] = player.main_shirt_number ?? 1
     }
   } catch (err) {
-    addPlayerError.value = 'Could not load players.'
+    addPlayerError.value = t('teamDetail.errors.loadPlayers')
   } finally {
     playersLoading.value = false
   }
@@ -302,7 +324,7 @@ async function loadAvailablePlayers() {
 
 function formatApiErrors(errorData) {
   if (!errorData) {
-    return 'Something went wrong.'
+    return t('teamDetail.errors.generic')
   }
 
   if (typeof errorData === 'string') {
@@ -315,11 +337,11 @@ function formatApiErrors(errorData) {
 
   if (typeof errorData === 'object') {
     const fieldLabels = {
-      team_name: 'Team name',
-      sport_name: 'Sport',
-      logo_img: 'Team logo',
-      non_field_errors: 'Error',
-      detail: 'Error',
+      team_name: t('teamDetail.fields.teamName'),
+      sport_name: t('teamDetail.fields.sport'),
+      logo_img: t('teamDetail.fields.teamLogo'),
+      non_field_errors: t('teamDetail.fields.error'),
+      detail: t('teamDetail.fields.error'),
     }
 
     return Object.entries(errorData)
@@ -339,12 +361,12 @@ function formatApiErrors(errorData) {
       .join(' ')
   }
 
-  return 'Something went wrong.'
+  return t('teamDetail.errors.generic')
 }
 
 async function updateTeam() {
   if (!canEditTeam.value) {
-    editError.value = 'You can only edit teams that you manage.'
+    editError.value = t('teamDetail.errors.editForbidden')
     return
   }
 
@@ -365,20 +387,19 @@ async function updateTeam() {
     const response = await teamApi.update(route.params.id, formData)
 
     team.value = response.data
-    success.value = 'Team updated successfully.'
+    success.value = t('teamDetail.success.updated')
     editMode.value = false
 
     selectedLogo.value = null
     logoPreview.value = ''
   } catch (err) {
-    console.log(err.response?.data)
     editError.value = formatApiErrors(err.response?.data)
   }
 }
 
 async function addPlayerToTeam(player) {
   if (!canEditTeam.value) {
-    addPlayerError.value = 'You can only add players to teams that you manage.'
+    addPlayerError.value = t('teamDetail.errors.addForbidden')
     return
   }
 
@@ -391,7 +412,9 @@ async function addPlayerToTeam(player) {
       shirt_number: getDefaultShirtNumber(player),
     })
 
-    addPlayerSuccess.value = `${player.name} ${player.surname} was added to the team.`
+    addPlayerSuccess.value = t('teamDetail.success.playerAdded', {
+      name: `${player.name} ${player.surname}`,
+    })
 
     await loadTeam()
   } catch (err) {
@@ -402,7 +425,7 @@ async function addPlayerToTeam(player) {
     } else if (err.response?.data?.player_id) {
       addPlayerError.value = err.response.data.player_id[0]
     } else {
-      addPlayerError.value = 'Could not add player to team.'
+      addPlayerError.value = t('teamDetail.errors.addFailed')
     }
   }
 }
@@ -431,7 +454,7 @@ onMounted(async () => {
         v-if="loading"
         class="text-gray-600"
       >
-        Team is loading...
+        {{ t('teamDetail.loading') }}
       </p>
 
       <p
@@ -447,40 +470,40 @@ onMounted(async () => {
       >
         <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                    <div class="flex items-center gap-5">
-          <div class="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
-          <img
-      v-if="team.logo_url"
-      :src="team.logo_url"
-      :alt="`${team.team_name} logo`"
-      class="h-full w-full object-cover"
-    />
+            <div class="flex items-center gap-5">
+              <div class="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
+                <img
+                  v-if="team.logo_url"
+                  :src="team.logo_url"
+                  :alt="t('teamDetail.logoAlt', { name: team.team_name })"
+                  class="h-full w-full object-cover"
+                />
 
-    <span
-      v-else
-      class="text-3xl font-bold text-gray-400"
-    >
-      {{ team.team_name?.charAt(0) }}
-    </span>
-  </div>
+                <span
+                  v-else
+                  class="text-3xl font-bold text-gray-400"
+                >
+                  {{ team.team_name?.charAt(0) }}
+                </span>
+              </div>
 
-  <div>
-    <h1 class="text-4xl font-bold text-gray-900">
-      {{ team.team_name }}
-    </h1>
+              <div>
+                <h1 class="text-4xl font-bold text-gray-900">
+                  {{ team.team_name }}
+                </h1>
 
-    <p class="mt-2 text-lg text-gray-600">
-      {{ team.sport_name }}
-    </p>
-  </div>
-</div>
+                <p class="mt-2 text-lg text-gray-600">
+                  {{ team.sport_name }}
+                </p>
+              </div>
+            </div>
 
             <button
               v-if="canEditTeam && !editMode"
-              @click="editMode = true"
               class="rounded-xl bg-green-700 px-5 py-2 font-semibold text-white hover:bg-green-800"
+              @click="editMode = true"
             >
-              Edit Team
+              {{ t('teamDetail.editTeam') }}
             </button>
           </div>
         </div>
@@ -490,15 +513,17 @@ onMounted(async () => {
           class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
         >
           <h2 class="text-2xl font-bold text-gray-900">
-            Edit Team
+            {{ t('teamDetail.editTeam') }}
           </h2>
 
           <form
-            @submit.prevent="updateTeam"
             class="mt-6 space-y-4"
+            @submit.prevent="updateTeam"
           >
             <label class="block">
-              <span class="text-sm font-medium text-gray-700">Team name</span>
+              <span class="text-sm font-medium text-gray-700">
+                {{ t('teamDetail.teamName') }}
+              </span>
 
               <input
                 v-model="editForm.team_name"
@@ -509,7 +534,9 @@ onMounted(async () => {
             </label>
 
             <label class="block">
-              <span class="text-sm font-medium text-gray-700">Sport</span>
+              <span class="text-sm font-medium text-gray-700">
+                {{ t('teamDetail.sport') }}
+              </span>
 
               <input
                 v-model="editForm.sport_name"
@@ -520,398 +547,419 @@ onMounted(async () => {
             </label>
 
             <label class="block">
-  <span class="text-sm font-medium text-gray-700">Team logo</span>
+              <span class="text-sm font-medium text-gray-700">
+                {{ t('teamDetail.teamLogo') }}
+              </span>
 
-  <input
-    type="file"
-    accept="image/png,image/jpeg,image/jpg,image/webp"
-    @change="handleLogoChange"
-    class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-2 text-sm text-gray-700 outline-none focus:border-green-600"
-  />
-</label>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-2 text-sm text-gray-700 outline-none focus:border-green-600"
+                @change="handleLogoChange"
+              />
+            </label>
 
-<div
-  v-if="logoPreview || team.logo_url"
-  class="mt-4 flex items-center gap-4"
->
-  <img
-    :src="logoPreview || team.logo_url"
-    alt="Team logo preview"
-    class="h-20 w-20 rounded-xl border border-gray-200 object-cover"
-  />
+            <div
+              v-if="logoPreview || team.logo_url"
+              class="mt-4 flex items-center gap-4"
+            >
+              <img
+                :src="logoPreview || team.logo_url"
+                :alt="t('teamDetail.logoPreviewAlt')"
+                class="h-20 w-20 rounded-xl border border-gray-200 object-cover"
+              />
 
-  <p class="text-sm text-gray-600">
-    Logo preview
-  </p>
-</div>
+              <p class="text-sm text-gray-600">
+                {{ t('teamDetail.logoPreview') }}
+              </p>
+            </div>
 
             <div class="flex gap-3">
               <button
                 type="submit"
                 class="rounded-xl bg-green-700 px-5 py-2 font-semibold text-white hover:bg-green-800"
               >
-                Save Changes
+                {{ t('teamDetail.saveChanges') }}
               </button>
 
               <button
                 type="button"
-                @click="editMode = false"
                 class="rounded-xl border border-gray-300 px-5 py-2 font-semibold text-gray-700 hover:bg-gray-50"
+                @click="editMode = false"
               >
-                Cancel
+                {{ t('teamDetail.cancel') }}
               </button>
             </div>
 
             <p
-          v-if="editError"
-                class="rounded-xl bg-red-50 p-3 text-sm text-red-700"
-              >
-            {{ editError }}
+              v-if="editError"
+              class="rounded-xl bg-red-50 p-3 text-sm text-red-700"
+            >
+              {{ editError }}
             </p>
           </form>
         </section>
+
         <p
-              v-if="success"
-                class="rounded-xl bg-green-50 p-3 text-sm text-green-700"
+          v-if="success"
+          class="rounded-xl bg-green-50 p-3 text-sm text-green-700"
+        >
+          {{ success }}
+        </p>
+
+        <section class="grid gap-6 lg:grid-cols-2">
+          <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 class="text-2xl font-bold text-gray-900">
+              {{ t('teamDetail.matches.upcomingTitle') }}
+            </h2>
+
+            <p class="mt-1 text-sm text-gray-600">
+              {{ t('teamDetail.matches.upcomingSubtitle') }}
+            </p>
+
+            <p
+              v-if="matchesLoading"
+              class="mt-6 text-gray-600"
+            >
+              {{ t('teamDetail.matches.loading') }}
+            </p>
+
+            <p
+              v-else-if="matchesError"
+              class="mt-6 rounded-xl bg-red-50 p-3 text-sm text-red-700"
+            >
+              {{ matchesError }}
+            </p>
+
+            <p
+              v-else-if="futureMatches.length === 0"
+              class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
+            >
+              {{ t('teamDetail.matches.noUpcoming') }}
+            </p>
+
+            <div
+              v-else
+              class="mt-6 space-y-4"
+            >
+              <article
+                v-for="match in futureMatches"
+                :key="match.id"
+                class="rounded-xl border border-gray-200 p-4"
               >
-                  {{ success }}
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p class="font-semibold text-gray-900">
+                      {{ t('teamDetail.matches.versus') }}
+                      {{ getOpponentName(match) }}
+                    </p>
+
+                    <p class="mt-1 text-sm text-gray-600">
+                      {{ t('teamDetail.matches.tournament') }}:
+                      {{ match.tournament_name }}
+                    </p>
+
+                    <p class="mt-1 text-sm text-gray-600">
+                      {{ formatMatchDate(match.scheduled_date) }}
+                    </p>
+
+                    <p class="mt-1 text-sm text-gray-600">
+                      {{ getStadiumText(match) }}
+                    </p>
+                  </div>
+
+                  <span class="rounded-full bg-green-50 px-3 py-1 text-sm font-semibold text-green-700">
+                    {{ translatedStatus(match.match_status) }}
+                  </span>
+                </div>
+
+                <RouterLink
+                  :to="`/tournament/${match.tournament}`"
+                  class="mt-4 inline-block text-sm font-semibold text-green-700 hover:text-green-800"
+                >
+                  {{ t('teamDetail.matches.viewTournament') }}
+                </RouterLink>
+              </article>
+            </div>
+          </section>
+
+          <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 class="text-2xl font-bold text-gray-900">
+                  {{ t('teamDetail.matches.pastTitle') }}
+                </h2>
+
+                <p class="mt-1 text-sm text-gray-600">
+                  {{ t('teamDetail.matches.pastSubtitle') }}
+                </p>
+              </div>
+
+              <button
+                class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                @click="showPastMatches = !showPastMatches"
+              >
+                {{ showPastMatches
+                  ? t('teamDetail.matches.hidePast')
+                  : t('teamDetail.matches.viewPast', { count: pastMatches.length })
+                }}
+              </button>
+            </div>
+
+            <p
+              v-if="matchesLoading"
+              class="mt-6 text-gray-600"
+            >
+              {{ t('teamDetail.matches.loading') }}
             </p>
-<section class="grid gap-6 lg:grid-cols-2">
-  <!-- Future matches -->
-  <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-    <h2 class="text-2xl font-bold text-gray-900">
-      Upcoming Matches
-    </h2>
 
-    <p class="mt-1 text-sm text-gray-600">
-      The next scheduled matches for this team.
-    </p>
-
-    <p
-      v-if="matchesLoading"
-      class="mt-6 text-gray-600"
-    >
-      Loading matches...
-    </p>
-
-    <p
-      v-else-if="matchesError"
-      class="mt-6 rounded-xl bg-red-50 p-3 text-sm text-red-700"
-    >
-      {{ matchesError }}
-    </p>
-
-    <p
-      v-else-if="futureMatches.length === 0"
-      class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
-    >
-      No upcoming matches found.
-    </p>
-
-    <div
-      v-else
-      class="mt-6 space-y-4"
-    >
-      <article
-        v-for="match in futureMatches"
-        :key="match.id"
-        class="rounded-xl border border-gray-200 p-4"
-      >
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p class="font-semibold text-gray-900">
-              vs {{ getOpponentName(match) }}
+            <p
+              v-else-if="matchesError"
+              class="mt-6 rounded-xl bg-red-50 p-3 text-sm text-red-700"
+            >
+              {{ matchesError }}
             </p>
 
-            <p class="mt-1 text-sm text-gray-600">
-              Tournament: {{ match.tournament_name }}
+            <p
+              v-else-if="pastMatches.length === 0"
+              class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
+            >
+              {{ t('teamDetail.matches.noPast') }}
             </p>
 
-            <p class="mt-1 text-sm text-gray-600">
-              {{ formatMatchDate(match.scheduled_date) }}
-            </p>
+            <div
+              v-else-if="showPastMatches"
+              class="mt-6 overflow-hidden rounded-xl border border-gray-200"
+            >
+              <table class="w-full text-left text-sm">
+                <thead class="bg-gray-50 text-gray-700">
+                  <tr>
+                    <th class="px-4 py-3">
+                      {{ t('teamDetail.matches.table.match') }}
+                    </th>
+                    <th class="px-4 py-3">
+                      {{ t('teamDetail.matches.table.tournament') }}
+                    </th>
+                    <th class="px-4 py-3">
+                      {{ t('teamDetail.matches.table.date') }}
+                    </th>
+                    <th class="px-4 py-3">
+                      {{ t('teamDetail.matches.table.score') }}
+                    </th>
+                    <th class="px-4 py-3">
+                      {{ t('teamDetail.matches.table.status') }}
+                    </th>
+                  </tr>
+                </thead>
 
-            <p class="mt-1 text-sm text-gray-600">
-              {{ getStadiumText(match) }}
+                <tbody class="divide-y divide-gray-200">
+                  <tr
+                    v-for="match in pastMatches"
+                    :key="match.id"
+                    class="hover:bg-gray-50"
+                  >
+                    <td class="px-4 py-3 font-medium text-gray-900">
+                      {{ match.team1_name }}
+                      {{ t('teamDetail.matches.versus') }}
+                      {{ match.team2_name }}
+                    </td>
+
+                    <td class="px-4 py-3 text-gray-700">
+                      <RouterLink
+                        :to="`/tournament/${match.tournament}`"
+                        class="font-semibold text-green-700 hover:text-green-800"
+                      >
+                        {{ match.tournament_name }}
+                      </RouterLink>
+                    </td>
+
+                    <td class="px-4 py-3 text-gray-700">
+                      {{ formatMatchDate(match.scheduled_date) }}
+                    </td>
+
+                    <td class="px-4 py-3 font-semibold text-gray-900">
+                      {{ getScoreText(match) }}
+                    </td>
+
+                    <td class="px-4 py-3 text-gray-700">
+                      {{ translatedStatus(match.match_status) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p
+              v-else
+              class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
+            >
+              {{ t('teamDetail.matches.clickToShow') }}
             </p>
+          </section>
+        </section>
+
+        <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-900">
+                {{ t('teamDetail.standings.title') }}
+              </h2>
+
+              <p class="mt-1 text-sm text-gray-600">
+                {{ t('teamDetail.standings.subtitle') }}
+              </p>
+            </div>
+
+            <button
+              class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              @click="loadTournamentStandings"
+            >
+              {{ t('teamDetail.standings.refresh') }}
+            </button>
           </div>
 
-          <span class="rounded-full bg-green-50 px-3 py-1 text-sm font-semibold text-green-700">
-            {{ match.match_status }}
-          </span>
-        </div>
-
-        <RouterLink
-          :to="`/tournament/${match.tournament}`"
-          class="mt-4 inline-block text-sm font-semibold text-green-700 hover:text-green-800"
-        >
-          View tournament
-        </RouterLink>
-      </article>
-    </div>
-  </section>
-
-  <!-- Past matches -->
-  <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h2 class="text-2xl font-bold text-gray-900">
-          Past Matches
-        </h2>
-
-        <p class="mt-1 text-sm text-gray-600">
-          Completed or already-played matches for this team.
-        </p>
-      </div>
-
-      <button
-        @click="showPastMatches = !showPastMatches"
-        class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-      >
-        {{ showPastMatches ? 'Hide Past Matches' : `View Past Matches (${pastMatches.length})` }}
-      </button>
-    </div>
-
-    <p
-      v-if="matchesLoading"
-      class="mt-6 text-gray-600"
-    >
-      Loading matches...
-    </p>
-
-    <p
-      v-else-if="matchesError"
-      class="mt-6 rounded-xl bg-red-50 p-3 text-sm text-red-700"
-    >
-      {{ matchesError }}
-    </p>
-
-    <p
-      v-else-if="pastMatches.length === 0"
-      class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
-    >
-      No past matches found.
-    </p>
-
-    <div
-      v-else-if="showPastMatches"
-      class="mt-6 overflow-hidden rounded-xl border border-gray-200"
-    >
-      <table class="w-full text-left text-sm">
-        <thead class="bg-gray-50 text-gray-700">
-          <tr>
-            <th class="px-4 py-3">Match</th>
-            <th class="px-4 py-3">Tournament</th>
-            <th class="px-4 py-3">Date</th>
-            <th class="px-4 py-3">Score</th>
-            <th class="px-4 py-3">Status</th>
-          </tr>
-        </thead>
-
-        <tbody class="divide-y divide-gray-200">
-          <tr
-            v-for="match in pastMatches"
-            :key="match.id"
-            class="hover:bg-gray-50"
+          <p
+            v-if="tournamentStandingsLoading"
+            class="mt-6 text-gray-600"
           >
-            <td class="px-4 py-3 font-medium text-gray-900">
-              {{ match.team1_name }} vs {{ match.team2_name }}
-            </td>
+            {{ t('teamDetail.standings.loading') }}
+          </p>
 
-            <td class="px-4 py-3 text-gray-700">
+          <p
+            v-else-if="tournamentStandingsError"
+            class="mt-6 rounded-xl bg-red-50 p-3 text-sm text-red-700"
+          >
+            {{ tournamentStandingsError }}
+          </p>
+
+          <p
+            v-else-if="tournamentStandings.length === 0"
+            class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
+          >
+            {{ t('teamDetail.standings.empty') }}
+          </p>
+
+          <div
+            v-else
+            class="mt-6 space-y-6"
+          >
+            <article
+              v-for="item in tournamentStandings"
+              :key="item.tournament_id"
+              class="rounded-2xl border border-gray-200 p-5"
+            >
+              <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <h3 class="text-xl font-bold text-gray-900">
+                    {{ item.tournament_name }}
+                  </h3>
+
+                  <p class="mt-1 text-sm text-gray-600">
+                    {{ item.sport }} · {{ item.location }}
+                  </p>
+
+                  <p class="mt-1 text-sm text-gray-600">
+                    {{ formatTournamentDate(item.start_date) }}
+                    -
+                    {{ formatTournamentDate(item.end_date) }}
+                  </p>
+                </div>
+
+                <span class="w-fit rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+                  {{ translatedStatus(item.status) }}
+                </span>
+              </div>
+
+              <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                <div class="rounded-xl bg-gray-50 p-4 text-center">
+                  <p class="text-xs font-semibold uppercase text-gray-500">
+                    {{ t('teamDetail.standings.position') }}
+                  </p>
+
+                  <p class="mt-1 text-2xl font-bold text-gray-900">
+                    #{{ item.team_standing.position }}
+                  </p>
+                </div>
+
+                <div class="rounded-xl bg-gray-50 p-4 text-center">
+                  <p class="text-xs font-semibold uppercase text-gray-500">
+                    {{ t('teamDetail.standings.points') }}
+                  </p>
+
+                  <p class="mt-1 text-2xl font-bold text-gray-900">
+                    {{ item.team_standing.points }}
+                  </p>
+                </div>
+
+                <div class="rounded-xl bg-gray-50 p-4 text-center">
+                  <p class="text-xs font-semibold uppercase text-gray-500">
+                    {{ t('teamDetail.standings.played') }}
+                  </p>
+
+                  <p class="mt-1 text-2xl font-bold text-gray-900">
+                    {{ item.team_standing.played_games }}
+                  </p>
+                </div>
+
+                <div class="rounded-xl bg-gray-50 p-4 text-center">
+                  <p class="text-xs font-semibold uppercase text-gray-500">
+                    {{ t('teamDetail.standings.record') }}
+                  </p>
+
+                  <p class="mt-1 text-lg font-bold text-gray-900">
+                    {{ item.team_standing.wins }}{{ t('teamDetail.standings.winsShort') }}
+                    {{ item.team_standing.draws }}{{ t('teamDetail.standings.drawsShort') }}
+                    {{ item.team_standing.losses }}{{ t('teamDetail.standings.lossesShort') }}
+                  </p>
+                </div>
+
+                <div class="rounded-xl bg-gray-50 p-4 text-center">
+                  <p class="text-xs font-semibold uppercase text-gray-500">
+                    {{ t('teamDetail.standings.goalDifference') }}
+                  </p>
+
+                  <p class="mt-1 text-2xl font-bold text-gray-900">
+                    {{ getGoalDifferenceLabel(item.team_standing) }}
+                  </p>
+                </div>
+              </div>
+
+              <details class="mt-5">
+                <summary class="cursor-pointer text-sm font-semibold text-green-700 hover:text-green-800">
+                  {{ t('teamDetail.standings.viewFull') }}
+                </summary>
+
+                <StandingsTeamTable
+                  class="mt-4"
+                  :standings="item.standings"
+                  :highlight-team-id="team.id"
+                />
+              </details>
+
               <RouterLink
-                :to="`/tournament/${match.tournament}`"
-                class="font-semibold text-green-700 hover:text-green-800"
+                :to="`/tournament/${item.tournament_id}`"
+                class="mt-4 inline-block text-sm font-semibold text-green-700 hover:text-green-800"
               >
-                {{ match.tournament_name }}
+                {{ t('teamDetail.standings.openTournament') }}
               </RouterLink>
-            </td>
+            </article>
+          </div>
+        </section>
 
-            <td class="px-4 py-3 text-gray-700">
-              {{ formatMatchDate(match.scheduled_date) }}
-            </td>
-
-            <td class="px-4 py-3 font-semibold text-gray-900">
-              {{ getScoreText(match) }}
-            </td>
-
-            <td class="px-4 py-3 text-gray-700">
-              {{ match.match_status }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <p
-      v-else
-      class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
-    >
-      Click “View Past Matches” to show this team’s match history.
-    </p>
-  </section>
-</section>
-          <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-    <div>
-      <h2 class="text-2xl font-bold text-gray-900">
-        Tournament Leaderboards
-      </h2>
-
-      <p class="mt-1 text-sm text-gray-600">
-        Current position of this team in every tournament it participates in.
-      </p>
-    </div>
-
-    <button
-      @click="loadTournamentStandings"
-      class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-    >
-      Refresh Standings
-    </button>
-  </div>
-
-  <p
-    v-if="tournamentStandingsLoading"
-    class="mt-6 text-gray-600"
-  >
-    Loading tournament standings...
-  </p>
-
-  <p
-    v-else-if="tournamentStandingsError"
-    class="mt-6 rounded-xl bg-red-50 p-3 text-sm text-red-700"
-  >
-    {{ tournamentStandingsError }}
-  </p>
-
-  <p
-    v-else-if="tournamentStandings.length === 0"
-    class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
-  >
-    This team does not participate in any tournament yet.
-  </p>
-
-  <div
-    v-else
-    class="mt-6 space-y-6"
-  >
-    <article
-      v-for="item in tournamentStandings"
-      :key="item.tournament_id"
-      class="rounded-2xl border border-gray-200 p-5"
-    >
-      <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <h3 class="text-xl font-bold text-gray-900">
-            {{ item.tournament_name }}
-          </h3>
-
-          <p class="mt-1 text-sm text-gray-600">
-            {{ item.sport }} · {{ item.location }}
-          </p>
-
-          <p class="mt-1 text-sm text-gray-600">
-            {{ formatTournamentDate(item.start_date) }}
-            -
-            {{ formatTournamentDate(item.end_date) }}
-          </p>
-        </div>
-
-        <span class="w-fit rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
-          {{ item.status }}
-        </span>
-      </div>
-
-      <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <div class="rounded-xl bg-gray-50 p-4 text-center">
-          <p class="text-xs font-semibold uppercase text-gray-500">
-            Position
-          </p>
-
-          <p class="mt-1 text-2xl font-bold text-gray-900">
-            #{{ item.team_standing.position }}
-          </p>
-        </div>
-
-        <div class="rounded-xl bg-gray-50 p-4 text-center">
-          <p class="text-xs font-semibold uppercase text-gray-500">
-            Points
-          </p>
-
-          <p class="mt-1 text-2xl font-bold text-gray-900">
-            {{ item.team_standing.points }}
-          </p>
-        </div>
-
-        <div class="rounded-xl bg-gray-50 p-4 text-center">
-          <p class="text-xs font-semibold uppercase text-gray-500">
-            Played
-          </p>
-
-          <p class="mt-1 text-2xl font-bold text-gray-900">
-            {{ item.team_standing.played_games }}
-          </p>
-        </div>
-
-        <div class="rounded-xl bg-gray-50 p-4 text-center">
-          <p class="text-xs font-semibold uppercase text-gray-500">
-            Record
-          </p>
-
-          <p class="mt-1 text-lg font-bold text-gray-900">
-            {{ item.team_standing.wins }}W
-            {{ item.team_standing.draws }}D
-            {{ item.team_standing.losses }}L
-          </p>
-        </div>
-
-        <div class="rounded-xl bg-gray-50 p-4 text-center">
-          <p class="text-xs font-semibold uppercase text-gray-500">
-            Goal Difference
-          </p>
-
-          <p class="mt-1 text-2xl font-bold text-gray-900">
-            {{ getGoalDifferenceLabel(item.team_standing) }}
-          </p>
-        </div>
-      </div>
-
-      <details class="mt-5">
-        <summary class="cursor-pointer text-sm font-semibold text-green-700 hover:text-green-800">
-          View full leaderboard
-        </summary>
-
-        <StandingsTeamTable
-          class="mt-4"
-          :standings="item.standings"
-          :highlight-team-id="team.id"
-        />
-      </details>
-
-      <RouterLink
-        :to="`/tournament/${item.tournament_id}`"
-        class="mt-4 inline-block text-sm font-semibold text-green-700 hover:text-green-800"
-      >
-        Open tournament page
-      </RouterLink>
-    </article>
-  </div>
-</section>
         <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 class="text-2xl font-bold text-gray-900">
-            Team Players
+            {{ t('teamDetail.players.title') }}
           </h2>
 
           <p class="mt-1 text-sm text-gray-600">
-            Players currently registered in this team.
+            {{ t('teamDetail.players.subtitle') }}
           </p>
 
           <p
             v-if="!team.members || team.members.length === 0"
             class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
           >
-            No players have been added to this team yet.
+            {{ t('teamDetail.players.empty') }}
           </p>
 
           <div
@@ -921,72 +969,82 @@ onMounted(async () => {
             <table class="w-full text-left text-sm">
               <thead class="bg-gray-50 text-gray-700">
                 <tr>
-                     <th class="px-4 py-3">Team #</th>
-                       <th class="px-4 py-3">Name</th>
-                    <th class="px-4 py-3">Main #</th>
-                     <th class="px-4 py-3">Position</th>
-                      <th v-if="canEditTeam" class="px-4 py-3">Action</th>
-              </tr>
+                  <th class="px-4 py-3">
+                    {{ t('teamDetail.players.teamNumber') }}
+                  </th>
+                  <th class="px-4 py-3">
+                    {{ t('teamDetail.players.name') }}
+                  </th>
+                  <th class="px-4 py-3">
+                    {{ t('teamDetail.players.mainNumber') }}
+                  </th>
+                  <th class="px-4 py-3">
+                    {{ t('teamDetail.players.position') }}
+                  </th>
+                  <th v-if="canEditTeam" class="px-4 py-3">
+                    {{ t('teamDetail.players.action') }}
+                  </th>
+                </tr>
               </thead>
 
               <tbody class="divide-y divide-gray-200">
                 <tr
-  v-for="member in team.members"
-  :key="member.id"
-  class="hover:bg-gray-50"
->
-  <td class="px-4 py-3 font-semibold">
-    #{{ member.shirt_number }}
-  </td>
+                  v-for="member in team.members"
+                  :key="member.id"
+                  class="hover:bg-gray-50"
+                >
+                  <td class="px-4 py-3 font-semibold">
+                    #{{ member.shirt_number }}
+                  </td>
 
-  <td class="px-4 py-3 font-medium text-gray-900">
-  <RouterLink
-    :to="{ name: 'player', params: { id: member.player.id } }"
-    class="font-semibold text-green-700 hover:text-green-800"
-  >
-    {{ member.player.full_name }}
-  </RouterLink>
-</td>
+                  <td class="px-4 py-3 font-medium text-gray-900">
+                    <RouterLink
+                      :to="{ name: 'player', params: { id: member.player.id } }"
+                      class="font-semibold text-green-700 hover:text-green-800"
+                    >
+                      {{ member.player.full_name }}
+                    </RouterLink>
+                  </td>
 
-  <td class="px-4 py-3 text-gray-700">
-    #{{ member.player.main_shirt_number }}
-  </td>
+                  <td class="px-4 py-3 text-gray-700">
+                    #{{ member.player.main_shirt_number }}
+                  </td>
 
-  <td class="px-4 py-3 text-gray-700">
-    {{ member.player.position_display ?? getPositionLabel(member.player.position) }}
-  </td>
+                  <td class="px-4 py-3 text-gray-700">
+                    {{ getPositionLabel(member.player.position) }}
+                  </td>
 
-  <td
-    v-if="canEditTeam"
-    class="px-4 py-3"
-  >
-    <button
-      @click="removePlayerFromTeam(member)"
-      class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
-    >
-      Delete
-    </button>
-  </td>
-</tr>
+                  <td
+                    v-if="canEditTeam"
+                    class="px-4 py-3"
+                  >
+                    <button
+                      class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                      @click="removePlayerFromTeam(member)"
+                    >
+                      {{ t('teamDetail.players.delete') }}
+                    </button>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
         </section>
+
         <p
-  v-if="deletePlayerSuccess"
-  class="mt-6 rounded-xl bg-green-50 p-3 text-sm text-green-700"
->
-  {{ deletePlayerSuccess }}
-</p>
+          v-if="deletePlayerSuccess"
+          class="mt-6 rounded-xl bg-green-50 p-3 text-sm text-green-700"
+        >
+          {{ deletePlayerSuccess }}
+        </p>
 
-<p
-  v-if="deletePlayerError"
-  class="mt-6 rounded-xl bg-red-50 p-3 text-sm text-red-700"
->
-  {{ deletePlayerError }}
-</p>
+        <p
+          v-if="deletePlayerError"
+          class="mt-6 rounded-xl bg-red-50 p-3 text-sm text-red-700"
+        >
+          {{ deletePlayerError }}
+        </p>
 
-        <!-- Add player to team -->
         <section
           v-if="canEditTeam"
           class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
@@ -994,24 +1052,24 @@ onMounted(async () => {
           <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <h2 class="text-2xl font-bold text-gray-900">
-                Add Player to Team
+                {{ t('teamDetail.players.addTitle') }}
               </h2>
 
               <p class="mt-1 text-sm text-gray-600">
-                Search existing players and add them to this team.
+                {{ t('teamDetail.players.addSubtitle') }}
               </p>
             </div>
 
             <label class="w-full md:max-w-sm">
               <span class="text-sm font-medium text-gray-700">
-                Search players
+                {{ t('teamDetail.players.searchPlayers') }}
               </span>
 
               <input
                 v-model="playerSearchQuery"
                 type="search"
                 class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-2 outline-none focus:border-green-600"
-                placeholder="Search by name, number, or position"
+                :placeholder="t('teamDetail.players.searchPlaceholder')"
               />
             </label>
           </div>
@@ -1034,21 +1092,21 @@ onMounted(async () => {
             v-if="playersLoading"
             class="mt-6 text-gray-600"
           >
-            Loading players...
+            {{ t('teamDetail.players.loading') }}
           </p>
 
           <p
             v-else-if="availablePlayers.length === 0"
             class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
           >
-            No players are available.
+            {{ t('teamDetail.players.emptyAvailable') }}
           </p>
 
           <p
             v-else-if="filteredPlayers.length === 0"
             class="mt-6 rounded-xl border border-dashed border-gray-300 p-6 text-gray-600"
           >
-            No players match your search.
+            {{ t('teamDetail.players.noSearchResults') }}
           </p>
 
           <div
@@ -1058,12 +1116,24 @@ onMounted(async () => {
             <table class="w-full text-left text-sm">
               <thead class="bg-gray-50 text-gray-700">
                 <tr>
-                  <th class="px-4 py-3">Name</th>
-                  <th class="px-4 py-3">Main #</th>
-                  <th class="px-4 py-3">Team #</th>
-                  <th class="px-4 py-3">Position</th>
-                  <th class="px-4 py-3">Created</th>
-                  <th class="px-4 py-3">Action</th>
+                  <th class="px-4 py-3">
+                    {{ t('teamDetail.players.name') }}
+                  </th>
+                  <th class="px-4 py-3">
+                    {{ t('teamDetail.players.mainNumber') }}
+                  </th>
+                  <th class="px-4 py-3">
+                    {{ t('teamDetail.players.teamNumber') }}
+                  </th>
+                  <th class="px-4 py-3">
+                    {{ t('teamDetail.players.position') }}
+                  </th>
+                  <th class="px-4 py-3">
+                    {{ t('teamDetail.players.created') }}
+                  </th>
+                  <th class="px-4 py-3">
+                    {{ t('teamDetail.players.action') }}
+                  </th>
                 </tr>
               </thead>
 
@@ -1093,27 +1163,27 @@ onMounted(async () => {
                   </td>
 
                   <td class="px-4 py-3 text-gray-700">
-                    {{ player.position_display ?? getPositionLabel(player.position) }}
+                    {{ getPositionLabel(player.position) }}
                   </td>
 
                   <td class="px-4 py-3 text-gray-700">
-                    {{ new Date(player.created_at).toLocaleDateString() }}
+                    {{ formatSimpleDate(player.created_at) }}
                   </td>
 
                   <td class="px-4 py-3">
                     <button
                       v-if="!isPlayerAlreadyInTeam(player.id)"
-                      @click="addPlayerToTeam(player)"
                       class="rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800"
+                      @click="addPlayerToTeam(player)"
                     >
-                      Add
+                      {{ t('teamDetail.players.add') }}
                     </button>
 
                     <span
                       v-else
                       class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-500"
                     >
-                      Added
+                      {{ t('teamDetail.players.added') }}
                     </span>
                   </td>
                 </tr>

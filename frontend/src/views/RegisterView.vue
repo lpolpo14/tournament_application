@@ -1,9 +1,11 @@
 <script setup>
 import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import {useAuth} from "@/services/useAuth.js";
+import { useI18n } from 'vue-i18n'
+import { useAuth } from '@/services/useAuth.js'
 
 const router = useRouter()
+const { t } = useI18n()
 const { register } = useAuth()
 
 const username = ref('')
@@ -16,23 +18,41 @@ const errorMessage = ref('')
 const isLoading = ref(false)
 
 const roles = [
-  { label: 'Team Manager', value: 'team_manager' },
-  { label: 'Referee', value: 'referee' },
-  { label: 'Sports Administrator', value: 'sports_admin' },
+  { labelKey: 'auth.roles.teamManager', value: 'team_manager' },
+  { labelKey: 'auth.roles.referee', value: 'referee' },
+  { labelKey: 'auth.roles.sportsAdmin', value: 'sports_admin' },
 ]
 
+function translatedFieldName(field) {
+  const fieldMap = {
+    username: 'auth.fields.username',
+    email: 'auth.fields.email',
+    password: 'auth.fields.password',
+    confirm_password: 'auth.fields.confirmPassword',
+    role: 'auth.fields.role',
+  }
+
+  return fieldMap[field] ? t(fieldMap[field]) : field
+}
+
 function formatError(data) {
-  if (!data) return 'Registration failed.'
+  if (!data) {
+    return t('auth.register.errors.failed')
+  }
 
-  if (typeof data === 'string') return data
+  if (typeof data === 'string') {
+    return data
+  }
 
-  if (data.detail) return data.detail
+  if (data.detail) {
+    return data.detail
+  }
 
   const firstKey = Object.keys(data)[0]
   const firstValue = data[firstKey]
 
   if (Array.isArray(firstValue)) {
-    return `${firstKey}: ${firstValue[0]}`
+    return `${translatedFieldName(firstKey)}: ${firstValue[0]}`
   }
 
   return JSON.stringify(data)
@@ -42,7 +62,7 @@ async function submitRegister() {
   errorMessage.value = ''
 
   if (password.value !== confirmPassword.value) {
-    errorMessage.value = 'Passwords do not match.'
+    errorMessage.value = t('auth.register.errors.passwordsDoNotMatch')
     return
   }
 
@@ -70,17 +90,17 @@ async function submitRegister() {
   <main class="mx-auto max-w-md px-6 py-12">
     <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
       <h1 class="text-3xl font-bold text-gray-900">
-        Register
+        {{ t('auth.register.title') }}
       </h1>
 
       <p class="mt-2 text-sm text-gray-600">
-        Create your Unipi Sports account.
+        {{ t('auth.register.subtitle') }}
       </p>
 
       <form class="mt-6 space-y-4" @submit.prevent="submitRegister">
         <div>
           <label class="block text-sm font-medium text-gray-700">
-            Username
+            {{ t('auth.fields.username') }}
           </label>
 
           <input
@@ -94,7 +114,7 @@ async function submitRegister() {
 
         <div>
           <label class="block text-sm font-medium text-gray-700">
-            Email
+            {{ t('auth.fields.email') }}
           </label>
 
           <input
@@ -108,7 +128,7 @@ async function submitRegister() {
 
         <div>
           <label class="block text-sm font-medium text-gray-700">
-            Password
+            {{ t('auth.fields.password') }}
           </label>
 
           <input
@@ -122,7 +142,7 @@ async function submitRegister() {
 
         <div>
           <label class="block text-sm font-medium text-gray-700">
-            Confirm Password
+            {{ t('auth.fields.confirmPassword') }}
           </label>
 
           <input
@@ -136,7 +156,7 @@ async function submitRegister() {
 
         <div>
           <label class="block text-sm font-medium text-gray-700">
-            Role
+            {{ t('auth.fields.role') }}
           </label>
 
           <select
@@ -148,12 +168,12 @@ async function submitRegister() {
               :key="item.value"
               :value="item.value"
             >
-              {{ item.label }}
+              {{ t(item.labelKey) }}
             </option>
           </select>
 
           <p class="mt-1 text-xs text-gray-500">
-            Role selection is included for assignment demonstration purposes.
+            {{ t('auth.register.roleHelp') }}
           </p>
         </div>
 
@@ -166,17 +186,17 @@ async function submitRegister() {
           :disabled="isLoading"
           class="w-full rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-60"
         >
-          {{ isLoading ? 'Creating account...' : 'Register' }}
+          {{ isLoading ? t('auth.register.loading') : t('auth.register.submit') }}
         </button>
       </form>
 
       <p class="mt-4 text-center text-sm text-gray-600">
-        Already have an account?
+        {{ t('auth.register.alreadyHaveAccount') }}
         <RouterLink
           to="/login"
           class="font-semibold text-green-700 hover:text-green-800"
         >
-          Login
+          {{ t('auth.register.loginLink') }}
         </RouterLink>
       </p>
     </section>

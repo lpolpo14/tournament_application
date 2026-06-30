@@ -1,10 +1,14 @@
 <script setup>
+import { useI18n } from 'vue-i18n'
+
 defineProps({
   standings: {
     type: Array,
     required: true,
   },
-});
+})
+
+const { t } = useI18n()
 </script>
 
 <template>
@@ -12,16 +16,45 @@ defineProps({
     <table class="min-w-full text-sm">
       <thead class="bg-gray-100 text-gray-700">
         <tr>
-          <th class="px-4 py-3 text-left">#</th>
-          <th class="px-4 py-3 text-left">Team</th>
-          <th class="px-4 py-3 text-center">P</th>
-          <th class="px-4 py-3 text-center">W</th>
-          <th class="px-4 py-3 text-center">D</th>
-          <th class="px-4 py-3 text-center">L</th>
-          <th class="px-4 py-3 text-center">GS</th>
-          <th class="px-4 py-3 text-center">GC</th>
-          <th class="px-4 py-3 text-center">GD</th>
-          <th class="px-4 py-3 text-center">Pts</th>
+          <th class="px-4 py-3 text-left">
+            {{ t('standingsTable.rank') }}
+          </th>
+
+          <th class="px-4 py-3 text-left">
+            {{ t('standingsTable.team') }}
+          </th>
+
+          <th class="px-4 py-3 text-center">
+            {{ t('standingsTable.played') }}
+          </th>
+
+          <th class="px-4 py-3 text-center">
+            {{ t('standingsTable.wins') }}
+          </th>
+
+          <th class="px-4 py-3 text-center">
+            {{ t('standingsTable.draws') }}
+          </th>
+
+          <th class="px-4 py-3 text-center">
+            {{ t('standingsTable.losses') }}
+          </th>
+
+          <th class="px-4 py-3 text-center">
+            {{ t('standingsTable.goalsScored') }}
+          </th>
+
+          <th class="px-4 py-3 text-center">
+            {{ t('standingsTable.goalsConceded') }}
+          </th>
+
+          <th class="px-4 py-3 text-center">
+            {{ t('standingsTable.goalDifference') }}
+          </th>
+
+          <th class="px-4 py-3 text-center">
+            {{ t('standingsTable.points') }}
+          </th>
         </tr>
       </thead>
 
