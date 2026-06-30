@@ -1096,6 +1096,8 @@ onMounted(async () => {
           </div>
         </section>
 
+
+        <!--
         <section
           v-else
           class="rounded-2xl bg-white p-6 shadow"
@@ -1141,6 +1143,7 @@ onMounted(async () => {
           </div>
         </section>
 
+        -->
         <section class="rounded-2xl bg-white p-6 shadow">
           <h2 class="text-xl font-bold text-gray-900">
             {{ t('matchDetail.statistics.publicTitle') }}

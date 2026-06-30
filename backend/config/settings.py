@@ -12,13 +12,26 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# Load local environment file if it exists.
+# Existing terminal/deployment variables are NOT overwritten by default.
+load_dotenv()
+
 #SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 #USE_X_FORWARDED_HOST = True
 
 
-# Use this when deploying
-DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
-# DEBUG = True
+
+
+def env_bool(name, default=False):
+    value = os.environ.get(name)
+
+    if value is None:
+        return default
+
+    return value.lower() in ["true", "1", "yes", "on"]
+
 
 def env_list(name, default=""):
     value = os.environ.get(name, default)
@@ -29,13 +42,22 @@ def env_list(name, default=""):
         if item.strip()
     ]
 
-ALLOWED_HOSTS = [os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost")]
-CSRF_TRUSTED_ORIGINS = [
-    os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:5173"),
-]
-CORS_ALLOWED_ORIGINS = [
-    os.environ.get("DJANGO_CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
-]
+DEBUG = env_bool("DJANGO_DEBUG", False)
+
+ALLOWED_HOSTS = env_list(
+    "DJANGO_ALLOWED_HOSTS",
+    "localhost,127.0.0.1"
+)
+
+CSRF_TRUSTED_ORIGINS = env_list(
+    "DJANGO_CSRF_TRUSTED_ORIGINS",
+    "http://localhost:5173"
+)
+
+CORS_ALLOWED_ORIGINS = env_list(
+    "DJANGO_CORS_ALLOWED_ORIGINS",
+    "http://localhost:5173"
+)
 
 SESSION_COOKIE_HTTPONLY = True # For XSS
 

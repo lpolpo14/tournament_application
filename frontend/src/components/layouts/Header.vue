@@ -18,8 +18,8 @@ const menus = {
   ],
 
   team_manager: [
-    { labelKey: 'navigation.teams', path: '/teams' },
     { labelKey: 'navigation.tournaments', path: '/tournaments' },
+    { labelKey: 'navigation.teams', path: '/teams' },
     { labelKey: 'navigation.players', path: '/players' },
   ],
 
