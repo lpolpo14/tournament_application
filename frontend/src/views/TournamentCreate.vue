@@ -35,6 +35,7 @@ function extractError(err) {
 }
 
 function toApiDateTime(datetimeLocalValue) {
+  // Used when saving dates to the backend models.
   if (!datetimeLocalValue) {
     return null
   }

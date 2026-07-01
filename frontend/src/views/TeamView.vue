@@ -62,6 +62,7 @@ const pastMatches = computed(() => {
 })
 
 const canEditTeam = computed(() => {
+  // Backend ensures proper authorization - frontend verifies.
   if (!isAuthenticated.value) {
     return false
   }
@@ -77,6 +78,7 @@ const canEditTeam = computed(() => {
   return Number(team.value.manager_id) === Number(user.value.id)
 })
 
+// Positions translation for localization
 const positions = [
   { value: 'UK', labelKey: 'teamDetail.positions.unknown' },
   { value: 'GK', labelKey: 'teamDetail.positions.goalkeeper' },
@@ -98,6 +100,7 @@ const filteredPlayers = computed(() => {
 
   let players = [...availablePlayers.value]
 
+  // Sort based on date created of the player models.
   players.sort((a, b) => {
     return new Date(b.created_at) - new Date(a.created_at)
   })
@@ -139,6 +142,7 @@ function formatMatchDate(dateValue) {
     return t('teamDetail.matches.notScheduled')
   }
 
+  // Language Sensitive
   return new Intl.DateTimeFormat(browserLocale(), {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -478,6 +482,7 @@ onMounted(async () => {
                   :alt="t('teamDetail.logoAlt', { name: team.team_name })"
                   class="h-full w-full object-cover"
                 />
+                <!-- Neat way to retrieve image from the backend using :src! -->
 
                 <span
                   v-else

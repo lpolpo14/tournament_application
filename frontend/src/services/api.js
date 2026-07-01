@@ -1,7 +1,10 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
+// Base URL of the Django API.
 
 import axios from "axios";
 
+// Central Axios instance used by the frontend to communicate with the backend.
+// Avoids re-instantiation each time.
 const instance_api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 5000,
@@ -11,6 +14,8 @@ const instance_api = axios.create({
   xsrfHeaderName: "X-CSRFToken",
 });
 
+
+// Helper function to read cookie from Django.
 function getCookie(name) {
   const cookies = document.cookie ? document.cookie.split('; ') : []
 
@@ -27,6 +32,9 @@ function getCookie(name) {
 
 const unsafeMethods = ['post', 'put', 'patch', 'delete']
 
+
+// Special request interceptor. This attaches a csrf token before the unsafe request
+// is sent to the backend.
 instance_api.interceptors.request.use(async (config) => {
   const method = config.method?.toLowerCase()
 
@@ -36,7 +44,7 @@ instance_api.interceptors.request.use(async (config) => {
 
   let csrfToken = getCookie('csrftoken')
 
-  if (!csrfToken) {
+  if (!csrfToken) { // If not cookie ask Django API to send one
     const response = await instance_api.get('/auth/csrf/')
     csrfToken = response.data.csrfToken || getCookie('csrftoken')
   }
@@ -49,6 +57,8 @@ instance_api.interceptors.request.use(async (config) => {
 
 export default instance_api;
 
+
+// Helper API instances and methods.
 export const playerApi = {
   getAll() {
     return instance_api.get('/players/')

@@ -5,12 +5,18 @@ from ..teams.serializers import TeamSerializer
 from ..tournaments.models import Tournament, TournamentParticipation
 
 class TournamentSerializer(serializers.ModelSerializer):
+    """
+    Main tournament serializer. Returns full team information. It accepts Team IDs for writing.
+    """
+    # Read-only nested Team data when displaying tournament details.
     teams = TeamSerializer(many=True, read_only=True)
 
+    # Write only fields that allows the API to receive team IDs when creating/updating the tournament.
     teams_ids = serializers.PrimaryKeyRelatedField(
         source="teams", queryset=Team.objects.all(), many=True, write_only=True, required=False
     )
 
+    # Computed field (See function)
     pending_registration_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -25,6 +31,9 @@ class TournamentSerializer(serializers.ModelSerializer):
 
 
 class TournamentParticipationSerializer(serializers.ModelSerializer):
+    """
+    Serializer for tournament participation requests.
+    """
     team_name = serializers.SerializerMethodField()
     tournament_name = serializers.CharField(source="tournament.name", read_only=True)
     class Meta:
@@ -33,4 +42,4 @@ class TournamentParticipationSerializer(serializers.ModelSerializer):
                   "status", "requested_at", "request_answered_at"]
 
     def get_team_name(self, obj):
-        return getattr(obj.team, "team_name", str(obj.team)) #safer.
+        return getattr(obj.team, "team_name", str(obj.team)) #safer with fallback.

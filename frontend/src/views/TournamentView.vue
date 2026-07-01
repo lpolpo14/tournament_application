@@ -35,6 +35,10 @@ const manualMatchForm = ref({
   scheduled_date: '',
 })
 
+
+/*
+Authorization checks. A lot of checks ... Probably the most complicated frontend page.
+ */
 const isSportsAdmin = computed(() => {
   return isAuthenticated.value && role.value === 'sports_admin'
 })
@@ -229,6 +233,9 @@ async function fetchStadiums() {
 }
 
 async function requestRegistration() {
+  /*
+  Sent by a team manager for registration of his team (one of his teams).
+   */
   if (!canRequestRegistration.value) {
     error.value = t('tournamentDetail.errors.registrationForbidden')
     return
@@ -252,6 +259,9 @@ async function requestRegistration() {
 }
 
 async function acceptRegistration(registration) {
+  /*
+  Used by the sports administrator to accept a team's request to join the tournament.
+   */
   if (!canManageTournament.value) {
     error.value = t('tournamentDetail.errors.acceptForbidden')
     return
@@ -278,6 +288,9 @@ async function acceptRegistration(registration) {
 }
 
 async function rejectRegistration(registration) {
+  /*
+  Used by the sports administrator to deny a team's request to join the tournament.
+   */
   if (!canManageTournament.value) {
     error.value = t('tournamentDetail.errors.rejectForbidden')
     return
@@ -300,6 +313,12 @@ async function rejectRegistration(registration) {
 }
 
 async function commenceTournament() {
+  /*
+  Used for commencing a tournament. Note that the sports admin can select
+  whether to automatically generate matches or not.
+  If he chooses not to, he can later generate the missing matches using the round-robin algorithm.
+  (See the next function)
+   */
   if (!canManageTournament.value) {
     error.value = t('tournamentDetail.errors.commenceForbidden')
     return
@@ -356,6 +375,10 @@ async function generateMatches() {
 }
 
 async function createManualMatch() {
+  /*
+  Apart from automatic match generation, the admin can manually create matches for more
+  complex type of tournaments.
+   */
   if (!canCreateMatches.value) {
     error.value = t('tournamentDetail.errors.createMatchForbidden')
     return
@@ -448,6 +471,10 @@ async function cancelTournament() {
 }
 
 async function markTournamentOngoing() {
+  /*
+   * If tournament is cancelled, you can mark it as ongoing in case of error.
+   * This does not work if the tournament was marked as completed.
+   */
   if (!canMarkTournamentOngoing.value) {
     error.value = t('tournamentDetail.errors.onlyCancelledCanBeOngoing')
     return

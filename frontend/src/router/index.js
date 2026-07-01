@@ -89,7 +89,7 @@ const routes = [
 ]
 
 const router = createRouter({
- history: createWebHistory(), // Change here
+ history: createWebHistory(),
  routes,
 })
 

@@ -38,6 +38,7 @@ function formatDate(value) {
   return new Date(value).toLocaleDateString(browserLocale)
 }
 
+// Simple mapping for translation using localization.
 function translatedStatus(status) {
   const statusMap = {
     Scheduled: 'tournaments.status.scheduled',
@@ -51,7 +52,7 @@ function translatedStatus(status) {
 async function fetchTournaments() {
   loading.value = true
   error.value = ''
-
+  // No need for authentication here.
   try {
     const response = await instance_api.get('/tournaments/')
     tournaments.value = normalizeTournaments(response.data)

@@ -64,7 +64,7 @@ function formatDateTime(value) {
 
   const browserLocale = locale.value === 'el' ? 'el-GR' : 'en-US'
 
-  return new Date(value).toLocaleString(browserLocale)
+  return new Date(value).toLocaleString(browserLocale) // Language Sensitive method.
 }
 
 function stadiumLabel(match) {
@@ -96,7 +96,7 @@ function translatedResult(result) {
   return resultMap[result] ? t(resultMap[result]) : result
 }
 
-function resultClass(result) {
+function resultClass(result) { // Neat Tailwind + Vue usage!
   return {
     'text-green-700': result === 'Win',
     'text-red-700': result === 'Loss',

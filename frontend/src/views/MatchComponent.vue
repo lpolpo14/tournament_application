@@ -84,6 +84,7 @@ function emptyStatisticForm() {
   }
 }
 
+// Need two forms for each team.
 const team1StatisticForm = ref(emptyStatisticForm())
 const team2StatisticForm = ref(emptyStatisticForm())
 
@@ -140,7 +141,7 @@ function toApiDateTime(datetimeLocalValue) {
     return null
   }
 
-  return new Date(datetimeLocalValue).toISOString()
+  return new Date(datetimeLocalValue).toISOString() // Used when sending/saving dates to backend models.
 }
 
 function formatDateTime(value) {
@@ -150,7 +151,7 @@ function formatDateTime(value) {
 
   const browserLocale = locale.value === 'el' ? 'el-GR' : 'en-US'
 
-  return new Date(value).toLocaleString(browserLocale)
+  return new Date(value).toLocaleString(browserLocale) // Language Sensitive
 }
 
 function teamLabel(side) {
@@ -271,11 +272,16 @@ async function updateMatchSettings() {
 }
 
 async function cancelMatch() {
+  /*
+   *  The sports administrator can only cancel a match that was not marked as complete.
+   *  There is no remarking - it is definite.
+   */
   if (!canAdminEditMatch.value) {
     error.value = t('matchDetail.errors.adminCancelForbidden')
     return
   }
 
+  // Since this action is absolute, add a window to confirm.
   const confirmed = window.confirm(t('matchDetail.confirm.cancelMatch'))
 
   if (!confirmed) {
@@ -348,6 +354,10 @@ async function submitScore() {
 }
 
 async function savePlayerStatisticsForTeam(side) {
+  /*
+   * This function is tricky. There are two forms, so we must input the side
+   * for which we want to submit the statistics. Apart from that, simple payload settings.
+   */
   if (!canEditMatch.value) {
     error.value = t('matchDetail.errors.statisticsForbidden')
     return
@@ -378,10 +388,12 @@ async function savePlayerStatisticsForTeam(side) {
       extra_statistics: {},
     }
 
+    // Check if statistics for the user were already saved.
     const existingStatistic = playerStatistics.value.find((entry) => {
       return Number(entry.player) === Number(payload.player)
     })
 
+    // If statistics were already saved, then we update the statistics, not create new.
     if (existingStatistic) {
       await instance_api.patch(
         `/player-match-statistics/${existingStatistic.id}/`,
@@ -389,7 +401,7 @@ async function savePlayerStatisticsForTeam(side) {
       )
 
       success.value = t('matchDetail.success.statisticsUpdated')
-    } else {
+    } else { // Since no existing statistics were found, we use another endpoint to create the object.
       await instance_api.post('/player-match-statistics/', payload)
 
       success.value = t('matchDetail.success.statisticsSaved')

@@ -26,10 +26,17 @@ Right now we are using computed standings, meaning that we calculate standings c
 In the future it is suggested that we create a Standings model and save it there.
 """
 class TournamentViewSet(viewsets.ModelViewSet):
+    """
+    The main tournament API Controller.
+    """
     queryset = Tournament.objects.prefetch_related("teams", "participations__team").all()
     serializer_class = TournamentSerializer
 
     def get_permissions(self):
+        """
+        Only a team manager can request participation.
+        Editing & Creation of the tournament can be achieved only by the Sports Administrator
+        """
         if self.action in ["list", "retrieve", "standings"]:
             return [AllowAny()]
 
@@ -53,6 +60,10 @@ class TournamentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="request-registration")
     def request_registration(self, request, pk=None):
+        """
+        An endpoint used by a team manager to request a registration to the tournament.
+        It has a lot of self explainable checks.
+        """
         tournament = self.get_object()
 
         if tournament.status != Tournament.Status.SCHEDULED:
@@ -93,12 +104,15 @@ class TournamentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="registrations")
     def registrations(self, request, pk=None):
+        """
+        Used for viewing registrations for a tournament by an admin.
+        """
         tournament = self.get_object()
 
         queryset = tournament.participations.select_related("team").order_by("-requested_at")
 
         participation_status = request.query_params.get("status")
-        if participation_status:
+        if participation_status: # This is optional. Not really used in the frontend.
             queryset = queryset.filter(status=participation_status)
 
         serializer = TournamentParticipationSerializer(queryset, many=True)
@@ -106,6 +120,11 @@ class TournamentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], name="commence")
     def commence(self, request, pk=None):
+        """
+        This endpoint officially starts a tournament.
+        Before doing so - it checks for a lot of things. Everything is explained in the details
+        field that is returned when a 400_BAD_REQUEST is made.
+        """
         tournament = self.get_object()
 
         if tournament.status != Tournament.Status.SCHEDULED:
@@ -137,6 +156,9 @@ class TournamentViewSet(viewsets.ModelViewSet):
 
         generated_matches = []
 
+        # This field is very important. The sports_administrator can automatically generate matches
+        # Without having to create a match one by one. Extremely useful if the admin wants
+        # each team to play with every single other team.
         if request.data.get("generate_matches", True):
             generated_matches = self._generate_round_robin_matches(tournament)
 
@@ -152,6 +174,9 @@ class TournamentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="complete")
     def complete(self, request, pk=None):
+        """
+        Used for marking a tournament as complete.
+        """
         tournament = self.get_object()
 
         matches = tournament.tournament_matches.all()
@@ -185,6 +210,9 @@ class TournamentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="cancel")
     def cancel(self, request, pk=None):
+        """
+        Used for cancelling a tournament. This is easily reversible (See next action).
+        """
         tournament = self.get_object()
 
         if tournament.status == Tournament.Status.COMPLETED:
@@ -201,6 +229,9 @@ class TournamentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="mark-ongoing")
     def mark_ongoing(self, request, pk=None):
+        """
+        Rollbacks the cancellation of a tournament.
+        """
         tournament = self.get_object()
 
         if tournament.status != Tournament.Status.CANCELLED:
@@ -209,6 +240,7 @@ class TournamentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # This is a general rule we followed during implementation.
         if tournament.teams.count() < 2:
             return Response(
                 {"detail": "Tournament must have at least two teams to be ongoing."},
@@ -223,6 +255,10 @@ class TournamentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="generate-matches")
     def generate_matches(self, request, pk=None):
+        """
+        A special endpoint used for the automatic generation of matches.
+        It checks some important things before proceeding.
+        """
         tournament = self.get_object()
 
         if tournament.status not in [Tournament.Status.SCHEDULED, Tournament.Status.ONGOING]:
@@ -253,9 +289,15 @@ class TournamentViewSet(viewsets.ModelViewSet):
         )
 
     def _generate_round_robin_matches(self, tournament):
+        """
+        Used for generating matches using the round-robin algorithm.
+        A match is generated for every unique pair of teams.
+        """
+        # Regarding the stadiums and referees: The admin can change/edit these afterward - Practical.
         teams = list(tournament.teams.all())
         stadiums = list(Stadium.objects.all())
-        pairs = list(combinations(teams, 2))
+        pairs = list(combinations(teams, 2)) # Generates unique pairs
+        # Only referees can be assigned to matches.
         referees = list(User.objects.filter(details__role=UserDetails.Role.REFEREE).order_by("id"))
 
         if not pairs:
@@ -266,12 +308,14 @@ class TournamentViewSet(viewsets.ModelViewSet):
         total_tournament_seconds = (tournament.end_date - tournament.start_date).total_seconds()
 
         for index, (team1, team2) in enumerate(pairs):
+            # Used to check for duplicates.
             reverse_exists = Match.objects.filter(
                 tournament=tournament,
                 team1=team2,
                 team2=team1,
             ).exists()
 
+            # Used to check for duplicates.
             normal_exists = Match.objects.filter(
                 tournament=tournament,
                 team1=team1,
@@ -281,7 +325,8 @@ class TournamentViewSet(viewsets.ModelViewSet):
             if normal_exists or reverse_exists:
                 continue
 
-            if len(pairs) == 1:
+            # Spread matches evenly between the tournament start and finish times.
+            if len(pairs) == 1: # Niche but nice.
                 scheduled_date = tournament.start_date
             else:
                 offset_seconds =  total_tournament_seconds * (index/ (len(pairs) -1))
@@ -304,6 +349,9 @@ class TournamentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="standings")
     def standings(self, request, pk=None):
+        """
+        Returns standings.
+        """
         tournament = self.get_object()
         standings_list = calculate_tournament_standings(tournament)
 
@@ -311,13 +359,17 @@ class TournamentViewSet(viewsets.ModelViewSet):
 
 
 class TournamentParticipationViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Handles the registration requests. It is read only by default. Custom actions
+    are able to write to the TournamentParticipation objects though.
+    """
     queryset = TournamentParticipation.objects.select_related(
         "tournament",
         "team",
     ).all()
 
     serializer_class = TournamentParticipationSerializer
-    permission_classes = [IsSportsAdmin]
+    permission_classes = [IsSportsAdmin] # Only SportsAdministrator uses this class.
 
     @action(detail=True, methods=["post"], url_path="accept")
     def accept(self, request, pk=None):

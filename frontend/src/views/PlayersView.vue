@@ -22,6 +22,7 @@ const playerForm = ref({
   position: 'UK',
 })
 
+// Used for translating the backend representation to the localized frontend version.
 const positions = [
   { value: 'UK', labelKey: 'players.positions.unknown' },
   { value: 'GK', labelKey: 'players.positions.goalkeeper' },
@@ -35,6 +36,9 @@ const canAddPlayers = computed(() => {
 })
 
 const filteredPlayers = computed(() => {
+  /*
+  Simple function that filters players using multiple fields.
+   */
   const query = searchQuery.value.trim().toLowerCase()
 
   if (!query) {
@@ -74,7 +78,7 @@ async function loadPlayers() {
 }
 
 async function createPlayer() {
-  if (!canAddPlayers.value) {
+  if (!canAddPlayers.value) { // Simple check
     error.value = t('players.errors.addForbidden')
     return
   }

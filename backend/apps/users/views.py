@@ -15,12 +15,19 @@ from .serializers import RegisterSerializer, UserSerializer
 @require_GET
 @ensure_csrf_cookie # Sends a cookie
 def csrf(request):
+    """
+    Sends a CSRF Cookie to the user.
+    """
     return JsonResponse({"csrfToken": get_token(request)})
 
 
 @require_POST
-@csrf_exempt
+@csrf_protect
 def register_view(request):
+    """
+    Handles authentication based on the provided json request.
+    The user is logged in immediately after successful registration.
+    """
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -32,7 +39,7 @@ def register_view(request):
     serializer = RegisterSerializer(data=data)
     if not serializer.is_valid():
         return JsonResponse(serializer.errors, status=400)
-    user = serializer.save()
+    user = serializer.save() # Save the user.
     login(request, user)
     return JsonResponse(
         {
@@ -45,6 +52,9 @@ def register_view(request):
 @require_POST
 @csrf_protect # Blocks fake website requests.
 def login_view(request):
+    """
+    Authenticates the user based on the provided JSON request.
+    """
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -62,6 +72,7 @@ def login_view(request):
             status=400,
         )
 
+    # Automatically hashes the password (Django's Auth Mechanism).
     user = authenticate(
         request,
         username=username,
@@ -74,7 +85,7 @@ def login_view(request):
             status=400,
         )
 
-    login(request, user)
+    login(request, user) # Stores the user's session ID in the session.
 
     return JsonResponse({
         "detail": "Logged in successfully.",
@@ -85,7 +96,8 @@ def login_view(request):
 @require_POST
 @csrf_protect
 def logout_view(request):
-    logout(request)
+    logout(request) # Automatic logout using Django's Auth System.
+    # This clears the active Django Session.
 
     return JsonResponse({
         "detail": "Logged out successfully.",
@@ -94,6 +106,9 @@ def logout_view(request):
 
 @require_GET
 def me_view(request):
+    """
+    Returns details whether the frontend user is logged in or not.
+    """
     if not request.user.is_authenticated:
         return JsonResponse(
             {
@@ -122,6 +137,10 @@ User = get_user_model()
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, IsSportsAdmin])
 def referees_view(request):
+    """
+    Returns all users that are referees.
+    This endpoint can be used only by authenticated Sports Admins.
+    """
     referees = (
         User.objects
         .filter(details__role=UserDetails.Role.REFEREE)

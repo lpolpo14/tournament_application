@@ -7,10 +7,13 @@ from rest_framework.exceptions import ValidationError
 
 
 class Tournament(models.Model):
+    """
+    The main tournament model.
+    """
     name = models.CharField(max_length=100)
     sport = models.CharField(max_length=100)
     teams = models.ManyToManyField('teams.Team',blank=True, related_name='tournamentParticipation')
-    location = models.CharField(max_length=100)
+    location = models.CharField(max_length=100) # General location of the tournament.
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
 
@@ -25,6 +28,9 @@ class Tournament(models.Model):
         return f'{self.name} ({self.start_date} to {self.end_date})'
 
     def clean(self):
+        """
+        Database level validation.
+        """
         if self.start_date and self.end_date and self.start_date > self.end_date:
             raise ValidationError('Start date must be before end date')
 
@@ -37,6 +43,11 @@ class Tournament(models.Model):
         ]
 
 class TournamentParticipation(models.Model):
+    """
+    Connects the Teams model to the Tournament Model.
+    A team manager can register his team to the tournament, and then the sports administrator
+    either accepts or declines.
+    """
     class Status(models.TextChoices):
         PENDING = "Pending", "Pending"
         ACCEPTED = "Accepted", "Accepted"
@@ -51,13 +62,17 @@ class TournamentParticipation(models.Model):
     requested_at = models.DateTimeField(auto_now_add=True)
     request_answered_at = models.DateTimeField(null=True, blank=True)
 
+    # accept and reject functions are used in the TournamentParticipationViewSet for these
+    # specific actions. This is the 'business logic'. The view does not need to know the logic.
     def accept(self):
+        # Accept the request
         self.status = self.Status.ACCEPTED
         self.request_answered_at= timezone.now()
         self.save()
         self.tournament.teams.add(self.team)
 
     def reject(self):
+        # Reject the request. This is not reversible.
         self.status = self.Status.REJECTED
         self.request_answered_at = timezone.now()
         self.save()

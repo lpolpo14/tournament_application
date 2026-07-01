@@ -17,6 +17,7 @@ const role = ref('team_manager')
 const errorMessage = ref('')
 const isLoading = ref(false)
 
+// As we said, we are using localization.
 const roles = [
   { labelKey: 'auth.roles.teamManager', value: 'team_manager' },
   { labelKey: 'auth.roles.referee', value: 'referee' },
@@ -32,9 +33,11 @@ function translatedFieldName(field) {
     role: 'auth.fields.role',
   }
 
+  // If can be translated, then translate.
   return fieldMap[field] ? t(fieldMap[field]) : field
 }
 
+// Helper function to format errors.
 function formatError(data) {
   if (!data) {
     return t('auth.register.errors.failed')
@@ -62,6 +65,7 @@ async function submitRegister() {
   errorMessage.value = ''
 
   if (password.value !== confirmPassword.value) {
+    // Good practice.
     errorMessage.value = t('auth.register.errors.passwordsDoNotMatch')
     return
   }
@@ -97,6 +101,7 @@ async function submitRegister() {
         {{ t('auth.register.subtitle') }}
       </p>
 
+      <!-- @submit.prevent does not change the page when the form post action is pressed.is submitted.-->
       <form class="mt-6 space-y-4" @submit.prevent="submitRegister">
         <div>
           <label class="block text-sm font-medium text-gray-700">

@@ -19,13 +19,23 @@ from ..users.permissions import IsTeamManager, DenyAll, IsTeamManagerOfTeam, is_
 # Create your views here.
 
 class TeamViewSet(viewsets.ModelViewSet):
+    """
+    Main API controller for teams.
+    """
     serializer_class = TeamSerializer
     queryset = Team.objects.prefetch_related('members__player').all() # Prefetch speeds up things a lot!
+    # Prefetch also avoids N+1 Queries.
     search_fields = ["team_name", "sport_name"]
     ordering_fields = ["team_name", "sport_name", "created_at"]
     parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get_permissions(self):
+        """
+        This method applies different permissions based on the endpoint action.
+        Anyone can view the team.
+        A team manager can create a team/
+        A team manager of a specific team can update that team.
+        """
         if self.action in [
             "list",
             "retrieve",
@@ -52,12 +62,19 @@ class TeamViewSet(viewsets.ModelViewSet):
         return [DenyAll()]
 
     def perform_create(self, serializer):
+        """
+        Automatically assigns the logged in user as the team manager during creation.
+        """
         serializer.save(manager=self.request.user)
 
     @action(detail=True, methods=["post"], url_path="add-player")
     def add_player(self, request, pk=None):
+        """
+        Custom endpoint for adding a player to the team.
+        """
         team = self.get_object()
-        self.check_object_permissions(request, team)
+        self.check_object_permissions(request, team) # Object-Level Permissions Check (Is TeamManager
+        # Manager of that specific team?)
 
         serializer = addPlayerToTeamSerializer(data=request.data, context={"team": team})
 
@@ -73,9 +90,13 @@ class TeamViewSet(viewsets.ModelViewSet):
         methods=["delete"],url_path=r"members/(?P<member_id>\d+)", # Sadly no Django Path Expression...
     )
     def remove_player(self, request, pk=None, member_id=None):
+        """
+        Custom endpoint for removing a player
+        """
         team = self.get_object()
 
         self.check_object_permissions(request, team)
+        # Check if player is indeed part of team.
         try:
             team_member = TeamMember.objects.get(
                 id=member_id,
@@ -93,6 +114,11 @@ class TeamViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="matches")
     def matches(self, request, pk=None):
+        """
+        Returns the teams future and past matches.
+
+        Future matches are limited for better display.
+        """
         team = self.get_object()
         now = timezone.now()
 
@@ -105,13 +131,18 @@ class TeamViewSet(viewsets.ModelViewSet):
             .filter(Q(team1=team) | Q(team2=team))
         )
 
+        # Note - If a match is marked as Completed and schedule date has not yet been reached
+        # in real life - the match will still show up.
         future_matches = (
             team_matches
             .filter(scheduled_date__gte=now)
             .exclude(match_status=Match.Status.CANCELLED)
+            # .exclude(match_status=Match.Status.COMPLETED) Uncomment this to not include Completed matches.
             .order_by("scheduled_date")[:future_limit]
         )
 
+        # Show completed matches or matches with schedule times past the current time (The moment the user
+        # Clicks on this endpoint
         past_matches = (
             team_matches
             .filter(
@@ -128,6 +159,11 @@ class TeamViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="tournament-standings")
     def tournament_standings(self, request, pk=None):
+        """
+        Custom action for calculating the tournaments standings.
+
+        For each tournament, the standings are calculated.
+        """
         team = self.get_object()
 
         tournaments = (Tournament.objects.prefetch_related("teams").filter(teams=team)
@@ -143,7 +179,7 @@ class TeamViewSet(viewsets.ModelViewSet):
                     if standing["team_id"] == team.id
                 ),
                 None,
-            )
+            ) # Used for cleaner display.
             if not team_standing:
                 continue
 
@@ -163,6 +199,9 @@ class TeamViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="mine")
     def mine(self, request):
+        """
+        Searches for a team manager's teams (If authenticated properly)
+        """
         if not request.user.is_authenticated:
             return Response([], status=200)
 
@@ -180,6 +219,9 @@ class TeamViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 class PlayerViewSet(viewsets.ModelViewSet):
+    """
+    The Main Player View Set that handles player logic.
+    """
     serializer_class = PlayerSerializer
     queryset = Player.objects.all()
     search_fields = ["name", "surname", "position"]
@@ -187,8 +229,12 @@ class PlayerViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="statistics")
     def statistics(self, request, pk=None):
+        """
+        Get all statistics for a specific player.
+        """
         player = self.get_object()
 
+        # Loads all statistics objects for a specific player.
         statistics = (
             PlayerMatchStatistics.objects
             .select_related(
@@ -201,15 +247,16 @@ class PlayerViewSet(viewsets.ModelViewSet):
                 "player",
             )
             .filter(player=player)
-            .order_by("-match__scheduled_date")
+            .order_by("-match__scheduled_date") # Order by most current match
         )
 
         completed_statistics = [
             statistic
             for statistic in statistics
             if statistic.match.match_status == Match.Status.COMPLETED
-        ]
+        ] # For completed matches.
 
+        # Aggregated player totals.
         summary = {
             "played_matches": len(completed_statistics),
             "goals": sum(statistic.goals for statistic in completed_statistics),
@@ -220,8 +267,11 @@ class PlayerViewSet(viewsets.ModelViewSet):
 
         match_history = []
 
+        # Per match statistics.
         for statistic in statistics:
             match = statistic.match
+
+            # Calculate team for the specific player
             if statistic.team_id == match.team1_id:
                 opponent = match.team2
                 player_team_score = match.team1_score
@@ -232,6 +282,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
                 opponent_score = match.team1_score
             result = "Not completed"
 
+            # Calculate match result based on the player's team.
             if (
                     match.match_status == Match.Status.COMPLETED
                     and player_team_score is not None

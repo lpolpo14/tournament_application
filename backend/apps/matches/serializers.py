@@ -5,18 +5,20 @@ from ..users.models import UserDetails
 from ..matches.models import Match, Stadium, PlayerMatchStatistics
 from ..teams.models import TeamMember
 
-User = get_user_model()
+User = get_user_model() # Get current user.
 
 
 class MatchReadSerializer(serializers.ModelSerializer):
+    """
+    Read-Only serializer used for retrieving and listing matches.
+    """
+    # The following variables are to expose nested variables from specific models.
     team1_name = serializers.CharField(source="team1.team_name", read_only=True)
     team2_name = serializers.CharField(source="team2.team_name", read_only=True)
     tournament_name = serializers.CharField(source="tournament.name", read_only=True)
     player_statistics_count = serializers.IntegerField(source="player_statistics.count", read_only=True)
-
     stadium_name = serializers.CharField(source="stadium.name", read_only=True)
     stadium_city = serializers.CharField(source="stadium.city", read_only=True)
-
     referee_username = serializers.CharField(source="referee.username", read_only=True)
 
     class Meta:
@@ -40,10 +42,13 @@ class MatchReadSerializer(serializers.ModelSerializer):
             "scheduled_date",
             "match_status",
         ]
-
-        read_only_fields = fields
+        # One should not be laconic when exposing to VUE - as long as it is done safely.
+        read_only_fields = fields # We will not be writing to an object with this serializer.
 
 class MatchPatchSerializer(serializers.ModelSerializer):
+    """
+    Used for score submission. Ensures both teams' scores are submitted at the same time.
+    """
     class Meta:
         model = Match
         fields = ["team1_score", "team2_score", "match_status"]
@@ -77,6 +82,9 @@ class MatchPatchSerializer(serializers.ModelSerializer):
 
 
 class MatchAdminUpdateSerializer(serializers.ModelSerializer):
+    """
+    Allows for a sports administrator to update match data.
+    """
     referee = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(details__role=UserDetails.Role.REFEREE),
         required=True,
@@ -93,6 +101,7 @@ class MatchAdminUpdateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         match = self.instance
 
+        # No need to edit completed matches.
         if match and match.match_status == Match.Status.COMPLETED:
             raise serializers.ValidationError(
                 "Completed matches cannot be edited by the sports administrator."
@@ -101,6 +110,10 @@ class MatchAdminUpdateSerializer(serializers.ModelSerializer):
         return attrs
 
 class MatchCreateSerializer(serializers.ModelSerializer):
+    """
+    Used to create matches a sport administrator.
+    """
+    # This line prevents assigned a not referee user to the match.
     referee = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(details__role=UserDetails.Role.REFEREE),
         required=True,
@@ -118,6 +131,9 @@ class MatchCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
+        """
+        Simple validation function.
+        """
         team1 = attrs.get("team1")
         team2 = attrs.get("team2")
         tournament = attrs.get("tournament")
@@ -144,9 +160,12 @@ class StadiumSerializer(serializers.ModelSerializer):
         ]
 
 class PlayerMatchStatisticsSerializer(serializers.ModelSerializer):
-    player_full_name = serializers.SerializerMethodField()
+    """
+    Used to expose player match statistics to the frontend.
+    """
+    player_full_name = serializers.SerializerMethodField() # see function
     team_name = serializers.CharField(source="team.team_name", read_only=True)
-    shirt_number = serializers.SerializerMethodField()
+    shirt_number = serializers.SerializerMethodField() # see function
 
     class Meta:
         model = PlayerMatchStatistics
@@ -157,7 +176,7 @@ class PlayerMatchStatisticsSerializer(serializers.ModelSerializer):
         ]
 
         read_only_fields = [ "id", "player_full_name", "team_name", "shirt_number", "created_at",
-            "updated_at", ]
+            "updated_at", ] # A bit safer.
 
     def get_player_full_name(self, obj):
         return f"{obj.player.name} {obj.player.surname}"
@@ -174,6 +193,7 @@ class PlayerMatchStatisticsSerializer(serializers.ModelSerializer):
         return membership.shirt_number
 
     def validate(self, attrs):
+        # Some validations are repeated from the model. It is not bad.
         match = attrs.get("match", self.instance.match if self.instance else None)
         team = attrs.get("team", self.instance.team if self.instance else None)
         player = attrs.get("player", self.instance.player if self.instance else None)

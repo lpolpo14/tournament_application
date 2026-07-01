@@ -18,6 +18,9 @@ from ..users.permissions import  IsSportsAdmin, \
 # Create your views here.
 
 class MatchViewSet(viewsets.ModelViewSet):
+    """
+    Main API Controller for matches.
+    """
     queryset = Match.objects.select_related(
         "tournament",
         "team1",
@@ -29,6 +32,9 @@ class MatchViewSet(viewsets.ModelViewSet):
     ordering_fields = ["scheduled_date"]
 
     def get_serializer_class(self):
+        """
+        Dynamic serializers: Change the serializer based on the current action.
+        """
         if self.action in ["list", "retrieve", "players"]:
             return MatchReadSerializer
 
@@ -57,6 +63,9 @@ class MatchViewSet(viewsets.ModelViewSet):
         return queryset
 
     def get_permissions(self):
+        """
+        Dynamic permissions based on action. It is a neat way to add authorization.
+        """
         if self.action in ["list", "retrieve", "players"]:
             return [AllowAny()]
 
@@ -73,6 +82,9 @@ class MatchViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="assigned-to-me")
     def assigned_to_me(self, request):
+        """
+        Used by referees to see next match.
+        """
         matches = (
             Match.objects
             .select_related(
@@ -93,6 +105,9 @@ class MatchViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["patch"], url_path="admin-update")
     def admin_update(self, request, pk=None):
+        """
+        Used by admin to update match data.
+        """
         match = self.get_object()
 
         serializer = MatchAdminUpdateSerializer(
@@ -108,6 +123,9 @@ class MatchViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="cancel")
     def cancel(self, request, pk=None):
+        """
+        Used by admin to cancel a match.
+        """
         match = self.get_object()
 
         if match.match_status == Match.Status.COMPLETED:
@@ -124,6 +142,9 @@ class MatchViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="players")
     def players(self, request, pk=None):
+        """"
+        Retrieve all players for a match. Both teams.
+        """
         match = self.get_object()
 
         def serialize_members(team):
@@ -161,9 +182,13 @@ class MatchViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["patch"], url_path="submit-score")
     def submit_score(self, request, pk=None):
+        """
+        Used by a referee to submit a match score.
+        """
         match = self.get_object()
 
-        self.check_object_permissions(request, match) # Amazing function!
+        self.check_object_permissions(request, match) # Amazing function - enforces object permissions,
+        # Only assigned referee can submit a score for this match.
 
         serializer = MatchPatchSerializer(match, data=request.data, partial=True)
 
@@ -174,6 +199,9 @@ class MatchViewSet(viewsets.ModelViewSet):
         return Response(read_serializer.data)
 
 class StadiumViewSet(viewsets.ModelViewSet):
+    """
+    Simple API endpoint that allows Stadiums to be viewed or created.
+    """
     queryset = Stadium.objects.all().order_by("name")
     serializer_class = StadiumSerializer
 
@@ -197,18 +225,27 @@ from ..matches.serializers import (
 )
 
 class PlayerMatchStatisticsViewSet(viewsets.ModelViewSet):
+    """
+    This API Point handles player statistics per match.
+    """
     queryset = PlayerMatchStatistics.objects.select_related(
         "match","player","team","match__team1","match__team2",
     ).all()
     serializer_class = PlayerMatchStatisticsSerializer
 
     def get_permissions(self):
+        """
+        Anyone can read statistics. Only referee can edit the player match statistics.
+        """
         if self.action in ["list", "retrieve"]:
             return [AllowAny()]
 
         return [IsAuthenticated(), CanEditPlayerMatchStatistics()]
 
     def get_queryset(self):
+        """
+        Optional Filtering based on the query parameters provided.
+        """
         queryset = super().get_queryset()
         match_id = self.request.query_params.get("match")
         team_id = self.request.query_params.get("team")
@@ -223,6 +260,10 @@ class PlayerMatchStatisticsViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
+        """
+        Automatically assigns the current user as the referee who
+        recorded the statistics.
+        """
         match = serializer.validated_data["match"]
 
         if match.referee_id != self.request.user.id:
@@ -234,6 +275,7 @@ class PlayerMatchStatisticsViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         statistic = self.get_object()
+        # Check object-level permissions before updating data based on request.
         self.check_object_permissions(self.request, statistic)
         serializer.save(referee=self.request.user)
 

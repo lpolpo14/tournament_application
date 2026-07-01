@@ -9,8 +9,10 @@ import {
 const user = ref(null)
 const isLoaded = ref(false)
 
+// User is authenticated when the object exists.
 const isAuthenticated = computed(() => !!user.value)
 
+// If user exists and has a role return his role, otherwise visitor.
 const role = computed(() => {
   return user.value?.role || 'visitor'
 })
@@ -38,6 +40,7 @@ async function logout() {
   user.value = null
 }
 
+// Vue composable that is used by the other views in order to perform authentication automatically!
 export function useAuth() {
   return {
     user,

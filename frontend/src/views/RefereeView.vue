@@ -20,7 +20,7 @@ function normalizeList(data) {
   return Array.isArray(data) ? data : data.results || []
 }
 
-function isOverdue(match) {
+function isOverdue(match) { // Adds is overdue message on the match
   if (!match.scheduled_date) {
     return false
   }
@@ -84,6 +84,7 @@ async function loadAssignedMatches() {
   try {
     const response = await matchApi.getAssignedToMe()
 
+    // Sorts by date after converting scheduled dates to Javascript Date objects.
     matches.value = normalizeList(response.data).sort((a, b) => {
       return new Date(a.scheduled_date) - new Date(b.scheduled_date)
     })

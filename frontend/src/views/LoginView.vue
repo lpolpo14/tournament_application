@@ -13,6 +13,7 @@ const password = ref('')
 const errorMessage = ref('')
 const isLoading = ref(false)
 
+// Simple way to login with the useAuth code.
 async function submitLogin() {
   errorMessage.value = ''
   isLoading.value = true

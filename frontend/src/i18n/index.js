@@ -5,6 +5,7 @@ import el from './locales/el.json'
 
 const savedLocale = localStorage.getItem('locale') || 'en'
 
+// Settings for i18n, the language localization library.
 export const i18n = createI18n({
   legacy: false,
   globalInjection: true,

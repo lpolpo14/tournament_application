@@ -17,7 +17,7 @@ const form = ref({
   name: '',
   city: '',
   address: '',
-})
+}) // ref is simply amazing.
 
 const canManageStadiums = computed(() => {
   return isAuthenticated.value && role.value === 'sports_admin'
@@ -55,6 +55,9 @@ async function fetchStadiums() {
 }
 
 async function createStadium() {
+  /*
+  Used for sending a create request to the stadiums api endpoint.
+   */
   if (!canManageStadiums.value) {
     error.value = t('stadiums.errors.createForbidden')
     return
@@ -89,6 +92,9 @@ async function createStadium() {
 }
 
 async function deleteStadium(stadium) {
+  /*
+  The backend allows for stadium deletion - but we decided not to include it for simplicity.
+   */
   if (!canManageStadiums.value) {
     error.value = t('stadiums.errors.deleteForbidden')
     return
@@ -279,7 +285,7 @@ onMounted(async () => {
                 {{ stadium.address || t('stadiums.notSet') }}
               </p>
             </div>
-
+            <!--
             <div
               v-if="canManageStadiums"
               class="mt-5"
@@ -293,6 +299,7 @@ onMounted(async () => {
                 {{ t('stadiums.deleteButton') }}
               </button>
             </div>
+            -->
           </article>
         </div>
       </section>

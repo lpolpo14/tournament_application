@@ -8,8 +8,15 @@ from .models import Team, TeamMember, Player
 
 
 class PlayerSerializer(serializers.ModelSerializer):
-    full_name = serializers.SerializerMethodField()
+    """
+    Converts a Player to a serialized version.
+    """
+    full_name = serializers.SerializerMethodField() # See get_full_name
+
+    # Converts stored position into readable by user string
+    # Django automatically creates get_<field>_display for fields that use choices.
     position_display = serializers.CharField(source='get_position_display', read_only=True)
+
     class Meta:
         model = Player
         fields = ["id","name", "surname","full_name", "main_shirt_number", "position", "position_display", "created_at"]
@@ -20,6 +27,9 @@ class PlayerSerializer(serializers.ModelSerializer):
 
 
 class TeamMemberSerializer(serializers.ModelSerializer):
+    """
+    This class is used for adding a member to a team.
+    """
     player = PlayerSerializer(read_only=True)
     class Meta:
         model = TeamMember
@@ -29,7 +39,7 @@ class TeamMemberSerializer(serializers.ModelSerializer):
 
 class TeamMemberAddSerializer(serializers.ModelSerializer):
     """
-    This class is used for adding a member to a team.
+    This class is not really used.
     """
     class Meta:
         model = TeamMember
@@ -38,9 +48,12 @@ class TeamMemberAddSerializer(serializers.ModelSerializer):
 
 
 class TeamSerializer(serializers.ModelSerializer):
-    members = TeamMemberSerializer(many=True, read_only=True)
-    logo_url = serializers.SerializerMethodField()
-    manager_id = serializers.IntegerField(read_only=True)
+    """
+    This serializer is used for updating and creating teams.
+    """
+    members = TeamMemberSerializer(many=True, read_only=True) # Returns team members as nested TeamMember objects.
+    logo_url = serializers.SerializerMethodField() # Front end friendly URL for Logo.
+    manager_id = serializers.IntegerField(read_only=True) # Exposes Manager ID
 
     class Meta:
         model = Team
@@ -48,6 +61,9 @@ class TeamSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "logo_url", "members", "manager_id"]
 
     def validate_logo_img(self, image):
+        """
+        This function validates automatically the logo_img when inputted by the team manger.
+        """
         max_size = 2 * 1024 * 1024 # 2 MegaBytes
         max_width = 1200
         max_height = 1200
@@ -76,11 +92,11 @@ class TeamSerializer(serializers.ModelSerializer):
             img = Image.open(image)
             width, height = img.size
             image_format = img.format
-            img.verify()
+            img.verify() # Good security feature.
         except (IOError, SyntaxError):
             raise serializers.ValidationError("Invalid image file.")
 
-        image.seek(0)
+        image.seek(0) # Reset file pointer to the start so it can be saved properly.
 
         if image_format not in allowed_image_formats:
             raise serializers.ValidationError(
@@ -96,6 +112,11 @@ class TeamSerializer(serializers.ModelSerializer):
 
 
     def get_logo_url(self, obj):
+        """
+        Returns the team's logo URL.
+        If the request object is available, an absolute URI is returned
+        so the frontend can display the image from another host.
+        """
         if not obj.logo_img:
             return None
 
@@ -107,16 +128,17 @@ class TeamSerializer(serializers.ModelSerializer):
         return obj.logo_img.url
 
 class addPlayerToTeamSerializer(serializers.Serializer):
+    """
+    Custom add player to team API point.
+    """
     player_id = serializers.PrimaryKeyRelatedField(queryset=Player.objects.all(), source="player")
     shirt_number = serializers.IntegerField(min_value=1, max_value=99)
 
-    def validate_player(self, value):
-        try:
-            return Player.objects.get(id=value)
-        except Player.DoesNotExist:
-            raise serializers.ValidationError("Player does not exist")
 
     def validate(self, attrs):
+        """
+        Ensures shirt number is not already used when adding player nor that the player is already in.
+        """
         team = self.context["team"]
         player = attrs["player"]
         shirt_number = attrs["shirt_number"]

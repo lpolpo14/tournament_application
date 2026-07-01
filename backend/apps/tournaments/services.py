@@ -2,7 +2,11 @@ from ..matches.models import Match
 
 
 def calculate_tournament_standings(tournament):
+    """
+    Used for calculated a tournament's standings.
+    """
     standings = {}
+    # Retrieve and initialize each team's standings.
     for team in tournament.teams.all():
         standings[team.id] = {
             'team_id': team.id,
@@ -16,11 +20,14 @@ def calculate_tournament_standings(tournament):
             "points": 0,
         }
 
+    # We will calculate standings based on completed matches.
     completed_matches = (Match.objects.select_related("team1", "team2")
                          .filter(tournament=tournament, match_status="Completed"))
+
     for match in completed_matches:
         team1 = match.team1
         team2 = match.team2
+        # Just in case check.
         if team1.id not in standings or team2.id not in standings:
             continue
 
@@ -39,7 +46,7 @@ def calculate_tournament_standings(tournament):
         team2_standing["goals_scored"] += team2_score
         team2_standing["goals_conceded"] += team1_score
 
-        # We will see regarding points later.
+        # We chose the simple implementation of 3 scores if win, 1 for draw, and 0 if loss.
         if team1_score > team2_score:
             team1_standing["wins"] += 1
             team2_standing["losses"] += 1
@@ -56,7 +63,7 @@ def calculate_tournament_standings(tournament):
 
     standings_list = list(standings.values())
 
-    standings_list.sort(key=lambda x: -x["points"])
+    standings_list.sort(key=lambda x: -x["points"]) # Simple sorting by amounts of points.
 
     for index, team_entry in enumerate(standings_list, start=1):
         team_entry["position"] = index

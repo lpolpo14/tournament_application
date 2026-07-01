@@ -17,8 +17,13 @@ class Player(models.Model):
     surname = models.CharField(max_length=100)
     main_shirt_number =  models.PositiveIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(99)],
-    )
+    ) # The player may have a preferred shirt number. A team can assign another number to a player.
     class Position(models.TextChoices):
+        """
+        Available player positions.
+
+        In case the sport is not football, one can use unknown.
+        """
         GOALKEEPER = "GK", "Goalkeeper"
         DEFENDER = "DF", "Defender"
         MIDFIELDER = "MF", "Midfielder"
@@ -32,7 +37,7 @@ class Player(models.Model):
 
     class Meta:
         ordering = ['surname', 'name']
-        constraints = [
+        constraints = [ # Database level constraint - Ensures 1 <= Shirt Number <= 99
             CheckConstraint(condition=Q(main_shirt_number__gte=1) & Q(main_shirt_number__lte=99),
             name="player_main_shirt_number_between_1_and_99",
             )
@@ -52,9 +57,11 @@ class Team(models.Model):
     team_name = models.CharField(max_length=100)
     sport_name = models.CharField(max_length=100)
 
-    manager = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+    manager = models.ForeignKey(settings.AUTH_USER_MODEL, # Best way to support custom user details.
+                                on_delete=models.PROTECT, # Prevents deleting an user.
                                 related_name='managed_teams', null=True, blank=True)
 
+    # Optional team logo. Serializers perform further validation.
     logo_img = models.ImageField(upload_to=team_logo_upload_path,
                                  null=True,
                                  blank=True,
@@ -83,7 +90,7 @@ class TeamMember(models.Model):
     """
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='members')
     player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='team_memberships')
-    shirt_number = models.PositiveIntegerField() # In case a player is in multiple teams. Might remove later
+    shirt_number = models.PositiveIntegerField() # The player's shirt number that he is wearing for team.
     joined_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

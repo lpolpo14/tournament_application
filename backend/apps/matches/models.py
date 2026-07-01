@@ -8,7 +8,7 @@ from ..teams.models import TeamMember
 
 class Match(models.Model):
     """
-    This model represents a match between two teams.
+    This model represents a match between two teams within the context of a tournament.
     """
     class Status(models.TextChoices):
         SCHEDULED = "Scheduled", "Scheduled"
@@ -21,8 +21,9 @@ class Match(models.Model):
     scheduled_date = models.DateTimeField()
     stadium = models.ForeignKey('matches.Stadium', on_delete=models.SET_NULL, null=True, blank=True, related_name="matches")
 
+    # Both stadium and referee can be null due to the initialization process of a Match object.
     referee = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        settings.AUTH_USER_MODEL, # Compatibility with custom user models.
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -41,10 +42,16 @@ class Match(models.Model):
         return f'{self.team1} vs {self.team2}'
 
     def clean(self):
+        """
+        Model level validation.
+        """
         if self.team1 == self.team2:
             raise ValidationError('Teams must be different.')
 
 class Stadium(models.Model):
+    """
+    It is a good practice to separate models.
+    """
     name = models.CharField(max_length=255)
     city = models.CharField(max_length=255)
     address = models.CharField(max_length=255, blank=True)
@@ -58,9 +65,8 @@ from django.core.validators import MaxValueValidator
 
 class PlayerMatchStatistics(models.Model):
     """
-    Stores statistics for one player in one specific match.
-    This model supports the common statistics needed by the assignment,
-    while extra_statistics allows future sport-specific extensions.
+    This code is extremely extensible. This class connects a match object,
+    a player object, and a team object. For each match statistics are saved for each player.
     """
 
     match = models.ForeignKey(
@@ -75,6 +81,7 @@ class PlayerMatchStatistics(models.Model):
         "teams.Team",on_delete=models.CASCADE,related_name="player_match_statistics",
     )
 
+    # this field is important since only a specific referee can submit statistics.
     referee = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -86,15 +93,21 @@ class PlayerMatchStatistics(models.Model):
     goals = models.PositiveIntegerField(default=0)
     fouls = models.PositiveIntegerField(default=0)
 
-    # Neat Validator!
+    # Neat Validators!
     yellow_cards = models.PositiveIntegerField(default=0,validators=[MaxValueValidator(2)], )
     red_cards = models.PositiveIntegerField(default=0,validators=[MaxValueValidator(1)],)
-    extra_statistics = models.JSONField(default=dict, blank=True)  #Json is useful here.
+    extra_statistics = models.JSONField(default=dict, blank=True)  # Json is useful here.
+    # We will not be using extra statistics for this assignment - but it does prove that this model is extensible.
+    # No need to complicate things further.
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def clean(self):
+        """
+        Ensures a team participates in a match before statistics submission,
+        as well as that a player belongs to the specific team.
+        """
         if self.team not in [self.match.team1, self.match.team2]:
             raise ValidationError("The selected team does not participate in this match.")
 
@@ -112,7 +125,7 @@ class PlayerMatchStatistics(models.Model):
     class Meta:
         ordering = ["match", "team__team_name", "player__surname"]
         constraints = [
-            models.UniqueConstraint(
+            models.UniqueConstraint( # Only one statistics model for a player per match.
                 fields=["match", "player"],
                 name="unique_player_statistics_per_match",
             )

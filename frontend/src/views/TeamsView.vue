@@ -22,7 +22,7 @@ const teamForm = ref({
   sport_name: '',
 })
 
-function getTeamInitial(team) {
+function getTeamInitial(team) { // If no logo show initials
   return team.team_name?.charAt(0)?.toUpperCase() ?? '?'
 }
 
@@ -53,7 +53,7 @@ async function loadMyTeams() {
   myTeamsLoading.value = true
 
   try {
-    const response = await teamApi.getMine()
+    const response = await teamApi.getMine() // Retrieve all teams of logged in team manager.
     myTeams.value = response.data
   } catch (err) {
     myTeams.value = []
