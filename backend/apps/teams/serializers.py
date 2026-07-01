@@ -62,7 +62,7 @@ class TeamSerializer(serializers.ModelSerializer):
 
     def validate_logo_img(self, image):
         """
-        This function validates automatically the logo_img when inputted by the team manger.
+        This function validates automatically the logo_img when inputted by the team manager.
         """
         max_size = 2 * 1024 * 1024 # 2 MegaBytes
         max_width = 1200

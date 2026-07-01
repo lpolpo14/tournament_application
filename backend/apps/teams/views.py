@@ -110,7 +110,7 @@ class TeamViewSet(viewsets.ModelViewSet):
 
         team_member.delete()
 
-        return Response(status=status.HTTP_204_NO_CONTENT)\
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["get"], url_path="matches")
     def matches(self, request, pk=None):
@@ -226,6 +226,31 @@ class PlayerViewSet(viewsets.ModelViewSet):
     queryset = Player.objects.all()
     search_fields = ["name", "surname", "position"]
     ordering_fields = ["name", "surname", "main_shirt_number", "created_at"]
+
+    def get_permissions(self):
+        """
+        Anyone can view players and player statistics.
+
+        Updating and deleting players is disabled.
+        """
+        if self.action in [
+            "list",
+            "retrieve",
+            "statistics",
+        ]:
+            return [AllowAny()]
+
+        if self.action == "create":
+            return [IsAuthenticated(), IsTeamManager()]
+
+        if self.action in [
+            "update",
+            "partial_update",
+            "destroy",
+        ]:
+            return [DenyAll()]
+
+        return [DenyAll()]
 
     @action(detail=True, methods=["get"], url_path="statistics")
     def statistics(self, request, pk=None):
