@@ -1,12 +1,12 @@
 <script setup>
-import { ref } from 'vue'
+import {onMounted, ref} from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuth } from '@/services/useAuth.js'
 
 const router = useRouter()
 const { t } = useI18n()
-const { login } = useAuth()
+const { login, isAuthenticated, loadUser } = useAuth()
 
 const username = ref('')
 const password = ref('')
@@ -27,6 +27,14 @@ async function submitLogin() {
     isLoading.value = false
   }
 }
+// No need to show the login page if user is authenticated.
+onMounted(async () => {
+  await loadUser()
+
+  if (isAuthenticated.value) {
+    await router.replace({name: 'home'})
+  }
+})
 </script>
 
 <template>
