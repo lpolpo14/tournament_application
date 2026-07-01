@@ -2,7 +2,9 @@
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.validators import ASCIIUsernameValidator
 from rest_framework import serializers
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 from .models import UserDetails
 
@@ -14,6 +16,7 @@ class RegisterSerializer(serializers.Serializer):
     Serializer for registering a new user.
     Safely validates the user.
     """
+    username_validator = ASCIIUsernameValidator()
     username = serializers.CharField(max_length=150)
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
@@ -26,6 +29,14 @@ class RegisterSerializer(serializers.Serializer):
 
     # Is the username unique?
     def validate_username(self, value):
+
+        try:
+            self.username_validator(value)
+        except DjangoValidationError:
+            raise serializers.ValidationError(
+                "Username may contain only English letters, numbers, and @/./+/-/_."
+            )
+        
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("This username is already taken.")
         return value
